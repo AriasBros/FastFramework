@@ -1,6 +1,7 @@
 import importlib
 from glob import glob
 from os import path
+from typing import Any
 
 
 def get_modules(package_path: str) -> list[str]:
@@ -10,6 +11,13 @@ def get_modules(package_path: str) -> list[str]:
     files = [f for f in glob(path.join(package_path, pattern), recursive=True)]
 
     return files
+
+
+def get_attr(module: str, attr_name: str, default: Any = None) -> Any:
+    """Imports and returns the specified attribute from the given module."""
+
+    imported_module = importlib.import_module(module)
+    return getattr(imported_module, attr_name, default)
 
 
 def get_classes(modules: list[str], class_suffix: str = "") -> list[type]:

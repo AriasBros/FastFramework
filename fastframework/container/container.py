@@ -38,7 +38,7 @@ class Container(ContainerInterface):
         abstract = self.get_alias(abstract)
         return abstract in self._bindings
 
-    def resolve(self, abstract: str | type) -> Any:
+    async def resolve(self, abstract: str | type) -> Any:
         abstract = self.get_alias(abstract)
 
         if abstract in self._instances:
@@ -48,7 +48,7 @@ class Container(ContainerInterface):
             raise ValueError(f"No binding found for {abstract}")
 
         concrete: Callable[..., Any] = self._bindings[abstract]
-        instance: Any = concrete(self._app)
+        instance: Any = await concrete(self._app)
 
         self._instances[abstract] = instance
 
@@ -92,7 +92,7 @@ class Container(ContainerInterface):
         abstract: str | type,
         concrete: type[Any],
     ) -> Callable[..., Any]:
-        def closure(app: ApplicationInterface) -> Any:
-            return resolve(concrete, app=app)
+        async def closure(app: ApplicationInterface) -> Any:
+            return await resolve(concrete, app=app)
 
         return closure
