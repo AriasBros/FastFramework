@@ -1,0 +1,23 @@
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project]
+dynamic = ["version"]
+name = "fastframework"
+description = "A Python project."
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi[standard-no-fastapi-cloud-cli]",
+    "ruff>=0.15.12",
+]
+
+
+[tool.pdm]
+version = { source = "file", path = "fastframework/__init__.py" }
