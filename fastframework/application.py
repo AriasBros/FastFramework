@@ -1,9 +1,9 @@
-import os
 from logging import Logger
 from typing import Any, Type
 
 from fastframework.bootstrap.manager import BootstrapManager
 from fastframework.bootstrap.service_provider import ServiceProvider
+from fastframework.config.env import read_bool, read_str
 from fastframework.container.container import Container
 from fastframework.contracts.application import ApplicationInterface
 from fastframework.contracts.container.container import ContainerInterface
@@ -20,8 +20,9 @@ class Application(ApplicationInterface):
         bootstrap_manager = BootstrapManager(logger, *service_providers)
 
         super().__init__(
-            title=os.environ.get("APP_NAME", "FastFramework Application"),
-            version=os.environ.get("APP_VERSION", version),
+            title=read_str("APP_NAME", "FastFramework Application"),
+            debug=read_bool("APP_DEBUG"),
+            version=read_str("APP_VERSION", version),
             lifespan=bootstrap_manager.lifespan,
             **kwargs,
         )
