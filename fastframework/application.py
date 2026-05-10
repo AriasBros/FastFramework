@@ -6,7 +6,7 @@ from fastframework.bootstrap.manager import BootstrapManager
 from fastframework.bootstrap.service_provider import ServiceProvider
 from fastframework.config.env import read_bool, read_str
 from fastframework.container.container import Container
-from fastframework.container.utils import get_attr, get_modules
+from fastframework.container.utils import get_attr
 from fastframework.contracts.application import ApplicationInterface
 from fastframework.contracts.container.container import ContainerInterface
 
