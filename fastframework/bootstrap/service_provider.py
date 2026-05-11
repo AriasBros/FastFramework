@@ -6,7 +6,7 @@ from fastframework.contracts.application import ApplicationInterface
 
 
 class ServiceProvider(ABC):
-    def __init__(self, app: ApplicationInterface, logger: Logger):
+    def __init__(self, app: ApplicationInterface, logger: Logger | None = None):
         self.app = app
         self.logger = logger
 

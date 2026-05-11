@@ -5,10 +5,11 @@ from typing import Any
 
 from fastframework.contracts.application import ApplicationInterface
 from fastframework.contracts.container.container import ContainerInterface
-from fastframework.dependency_injection.resolvers import resolve
+from fastframework.dependency_injection.resolvers import resolve, resolve_dependant
 
 
 class Container(ContainerInterface):
+    _app: ApplicationInterface
     _bindings: dict[str | type, Callable[..., Any]]
     _instances: dict[str | type, object]
     _aliases: dict[str | type, str | type]
@@ -34,6 +35,17 @@ class Container(ContainerInterface):
 
         self._bindings[abstract] = concrete
 
+    def bind_if(
+        self,
+        abstract: str | type,
+        concrete: type[Any] | Callable[..., Any],
+    ) -> None:
+        if not self.is_bound(abstract):
+            self.bind(abstract, concrete)
+
+    def instance(self, abstract: str | type, instance: Any) -> None:
+        pass
+
     def is_bound(self, abstract: str | type) -> bool:
         abstract = self.get_alias(abstract)
         return abstract in self._bindings
@@ -53,6 +65,9 @@ class Container(ContainerInterface):
         self._instances[abstract] = instance
 
         return instance
+
+    async def call(self, callback: type | Callable[..., Any]) -> Any:
+        return await resolve_dependant(callback, app=self._app)
 
     def resolved(self, abstract: str | type) -> bool:
         abstract = self.get_alias(abstract)

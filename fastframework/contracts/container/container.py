@@ -10,6 +10,21 @@ class ContainerInterface(ABC):
         abstract: str | type,
         concrete: type[Any] | Callable[..., Any],
     ) -> None:
+        """Register a binding with the container."""
+        pass
+
+    @abstractmethod
+    def bind_if(
+        self,
+        abstract: str | type,
+        concrete: type[Any] | Callable[..., Any],
+    ) -> None:
+        """Register a binding if it hasn't already been registered."""
+        pass
+
+    @abstractmethod
+    def instance(self, abstract: str | type, instance: Any) -> None:
+        """Register an existing instance as shared in the container."""
         pass
 
     @abstractmethod
@@ -17,7 +32,12 @@ class ContainerInterface(ABC):
         pass
 
     @abstractmethod
-    def resolve(self, abstract: str | type) -> Any:
+    async def resolve(self, abstract: str | type) -> Any:
+        pass
+
+    @abstractmethod
+    async def call(self, callback: type | Callable[..., Any]) -> Any:
+        """Call the given callback (Closure, class@method...) and inject its dependencies."""
         pass
 
     @abstractmethod

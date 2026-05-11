@@ -1,11 +1,12 @@
-from fastframework.bootstrap.app_state_service_provider import AppStateServiceProvider
+from fastframework.bootstrap.instance_service_provider import InstanceServiceProvider
 from fastframework.config.base_config import BaseConfig
 from fastframework.config.respository import ConfigRepository
 from fastframework.container.utils import get_classes, get_modules
+from fastframework.contracts.config.respository import ConfigRepositoryInterface
 
 
-class ConfigRepositoryProvider(AppStateServiceProvider[ConfigRepository]):
-    def create(self) -> ConfigRepository:
+class ConfigRepositoryProvider(InstanceServiceProvider[ConfigRepositoryInterface]):
+    def create(self) -> ConfigRepositoryInterface:
         repo = ConfigRepository()
 
         modules = get_modules("config")

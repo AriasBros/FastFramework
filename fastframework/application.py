@@ -1,10 +1,11 @@
-from logging import Logger
 import logging
+from logging import Logger
 from typing import Any
 
 from fastframework.bootstrap.manager import BootstrapManager
 from fastframework.bootstrap.service_provider import ServiceProvider
 from fastframework.config.env import read_bool, read_str
+from fastframework.config.provider import ConfigRepositoryProvider
 from fastframework.container.container import Container
 from fastframework.container.utils import get_attr
 from fastframework.contracts.application import ApplicationInterface
@@ -12,6 +13,13 @@ from fastframework.contracts.container.container import ContainerInterface
 
 
 class Application(ApplicationInterface):
+    _critical_service_providers = [
+        ConfigRepositoryProvider,
+        # LoggingServiceProvider,
+    ]
+
+    _container: ContainerInterface
+
     def __init__(
         self,
         *service_providers: type[ServiceProvider],
@@ -19,6 +27,8 @@ class Application(ApplicationInterface):
         logger: Logger | None = None,
         **kwargs: Any,
     ) -> None:
+        self._container = Container(app=self)
+        self._register_critical_services()
         app_name = read_str("APP_NAME", "FastFramework Application")
 
         bootstrap_manager = BootstrapManager(
@@ -38,16 +48,18 @@ class Application(ApplicationInterface):
 
     @property
     def container(self) -> ContainerInterface:
-        if not hasattr(self.state, "ioc_container"):
-            setattr(self.state, "ioc_container", Container(app=self))
+        return self._container
 
-        return getattr(self.state, "ioc_container")
+    def _register_critical_services(self):
+        """Register critical services like config, logging, etc. that may be needed during the bootstrapping process."""
+        for provider_class in self._critical_service_providers:
+            provider_class(app=self).register()
 
     def _get_logger(self, app_name: str, logger: Logger | None) -> Logger:
         if logger is not None:
             return logger
 
-        # TODO
+        # TODO - We need to load the config repository before the bootstrap manager.
 
         default_logger = Logger(app_name)
         default_logger.setLevel(logging.DEBUG)

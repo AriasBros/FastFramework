@@ -51,7 +51,7 @@ async def resolve_provider(
 # https://github.com/fastapi/fastapi/discussions/7720
 async def resolve_dependant(
     command: Callable[..., Any],
-    name: str,
+    name: str | None = None,
     request: Request | None = None,
     security_scopes: Optional[List[str]] = None,
     app: FastAPI | None = None,
@@ -75,7 +75,7 @@ async def resolve_dependant(
         )
 
         dependant = get_dependant(
-            path=f"command:{name}",
+            path=f"command:{name or command.__name__}",
             call=command,
             own_oauth_scopes=security_scopes,
         )

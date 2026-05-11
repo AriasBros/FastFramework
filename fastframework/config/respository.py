@@ -1,9 +1,10 @@
 from typing import Any
 
 from fastframework.config.base_config import BaseConfig
+from fastframework.contracts.config.respository import ConfigRepositoryInterface
 
 
-class ConfigRepository:
+class ConfigRepository(ConfigRepositoryInterface):
     _items: dict[str, Any] = {}
 
     def __init__(self, items: dict[str, Any] = dict()) -> None:
@@ -18,11 +19,14 @@ class ConfigRepository:
     def __hasattr__(self, name: str) -> bool:
         return name in self._items
 
+    def has(self, name: str) -> bool:
+        return self.__hasattr__(name)
+
     def get(self, name: str, default: Any | None = None) -> Any | None:
         return self.__getattr__(name, default)
 
-    def has(self, name: str) -> bool:
-        return self.__hasattr__(name)
+    def all(self) -> dict[str, Any]:
+        return dict(self._items)
 
     def set(self, name: str, value: Any) -> None:
         self._items[name] = value

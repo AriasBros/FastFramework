@@ -5,13 +5,12 @@ from typing import AsyncGenerator, Type
 from dotenv import load_dotenv
 
 from fastframework.bootstrap.service_provider import ServiceProvider
-from fastframework.config.provider import ConfigRepositoryProvider
 from fastframework.contracts.application import ApplicationInterface
 from fastframework.dependency_injection.resolvers import resolve_dependant
 
 
 class BootstrapManager:
-    _service_providers_classes: list[Type[ServiceProvider]]
+    _service_providers_classes: tuple[Type[ServiceProvider], ...]
     _service_providers_instances: list[ServiceProvider]
     _starting = False
 
@@ -19,7 +18,7 @@ class BootstrapManager:
         self, logger: Logger, *service_providers: Type[ServiceProvider]
     ) -> None:
         self._logger = logger
-        self._service_providers_classes = [ConfigRepositoryProvider, *service_providers]
+        self._service_providers_classes = service_providers
         self._service_providers_instances = []
         load_dotenv()
 
@@ -86,12 +85,12 @@ class BootstrapManager:
 
         if self._starting and provider.is_critical:
             self._logger.critical(
-                f"❌ {name} failed to {method_name}, cannot start app"
+                f"❌  {name} failed to {method_name}, cannot start app"
             )
             raise provider.exception(f"{name} failed to {method_name}") from exception
         else:
             self._logger.warning(
-                f"⚠️ {name} failed to {method_name} properly: {exception}"
+                f"⚠️  {name} failed to {method_name} properly: {exception}"
             )
 
             if self._starting:
