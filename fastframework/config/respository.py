@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastframework.config.base_config import BaseConfig
+from fastframework.collections.dot_dict import has, get, set
 from fastframework.contracts.config.respository import ConfigRepositoryInterface
 
 
@@ -11,31 +11,22 @@ class ConfigRepository(ConfigRepositoryInterface):
         self._items = items
 
     def __getattr__(self, name: str, default: Any | None = None) -> Any | None:
-        if name in self._items:
-            return self._items.get(name, default)
-
-        return default
+        return get(self._items, name, default)
 
     def __hasattr__(self, name: str) -> bool:
-        return name in self._items
+        return has(self._items, name)
 
     def has(self, name: str) -> bool:
-        return self.__hasattr__(name)
+        return has(self._items, name)
 
     def get(self, name: str, default: Any | None = None) -> Any | None:
-        return self.__getattr__(name, default)
+        return get(self._items, name, default)
 
     def all(self) -> dict[str, Any]:
         return dict(self._items)
 
     def set(self, name: str, value: Any) -> None:
-        self._items[name] = value
-
-    def set_all(self, items: dict[str, Any] | BaseConfig) -> None:
-        if isinstance(items, BaseConfig):
-            items = items.model_dump()
-
-        self._items.update(items)
+        set(self._items, name, value)
 
     def string(self, name: str, default: str | None = None) -> str | None:
         value = self.get(name, default)

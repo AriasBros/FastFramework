@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, get_args
 
 from fastframework.bootstrap.service_provider import ServiceProvider
 
@@ -13,7 +13,11 @@ class InstanceServiceProvider(ServiceProvider, Generic[ServiceType]):
 
     @property
     def abstract(self) -> str | type:
-        return ServiceType.__class__
+        return get_args(type(self).__orig_bases__[0])[0]  # type: ignore
+
+    @property
+    def aliases(self) -> list[str | type] | None:
+        return None
 
     @abstractmethod
     def create(self) -> ServiceType:
@@ -21,10 +25,18 @@ class InstanceServiceProvider(ServiceProvider, Generic[ServiceType]):
 
     def register(self):
         if not self.has_dependencies:
-            instance = self.create()
-            self.app.container.instance(self.abstract, instance)
+            self._set_instance(self.create())
 
     async def boot(self):
         if self.has_dependencies:
-            instance = await self.app.container.call(self.create)
-            self.app.container.instance(self.abstract, instance)
+            self._set_instance(await self.app.container.call(self.create))
+
+    def _set_instance(self, instance: ServiceType):
+        abstract = self.abstract
+        aliases = self.aliases
+
+        self.app.container.instance(abstract, instance)
+
+        if aliases:
+            for alias in aliases:
+                self.app.container.set_alias(abstract, alias)

@@ -23,8 +23,8 @@ class ContainerInterface(ABC):
         pass
 
     @abstractmethod
-    def instance(self, abstract: str | type, instance: Any) -> None:
-        """Register an existing instance as shared in the container."""
+    def instance(self, abstract: str | type, instance: Any = None) -> Any | None:
+        """Register an existing instance as shared in the container or retrieve it from the container."""
         pass
 
     @abstractmethod

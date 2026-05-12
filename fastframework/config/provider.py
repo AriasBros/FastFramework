@@ -6,6 +6,10 @@ from fastframework.contracts.config.respository import ConfigRepositoryInterface
 
 
 class ConfigRepositoryProvider(InstanceServiceProvider[ConfigRepositoryInterface]):
+    @property
+    def aliases(self) -> list[str | type] | None:
+        return ["config"]
+
     def create(self) -> ConfigRepositoryInterface:
         repo = ConfigRepository()
 
@@ -14,6 +18,6 @@ class ConfigRepositoryProvider(InstanceServiceProvider[ConfigRepositoryInterface
 
         for cls in classes:
             instance: BaseConfig = cls()
-            repo.set_all(instance)
+            repo.set(instance.config_key, instance.model_dump())
 
         return repo

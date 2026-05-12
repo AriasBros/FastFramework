@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from fastframework.config.base_config import BaseConfig
-
 
 class ConfigRepositoryInterface(ABC):
     @abstractmethod
@@ -23,11 +21,6 @@ class ConfigRepositoryInterface(ABC):
     @abstractmethod
     def set(self, name: str, value: Any) -> None:
         """Set a given configuration value."""
-        pass
-
-    @abstractmethod
-    def set_all(self, items: dict[str, Any] | BaseConfig) -> None:
-        """Set multiple configuration values."""
         pass
 
     @abstractmethod

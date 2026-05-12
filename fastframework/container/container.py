@@ -43,12 +43,16 @@ class Container(ContainerInterface):
         if not self.is_bound(abstract):
             self.bind(abstract, concrete)
 
-    def instance(self, abstract: str | type, instance: Any) -> None:
-        pass
+    def instance(self, abstract: str | type, instance: Any = None) -> Any | None:
+        if instance is None:
+            abstract = self.get_alias(abstract)
+            return self._instances.get(abstract)
+
+        self._dropStaleInstances(abstract)
+        self._instances[abstract] = instance
 
     def is_bound(self, abstract: str | type) -> bool:
-        abstract = self.get_alias(abstract)
-        return abstract in self._bindings
+        return abstract in self._bindings or self.is_alias(abstract)
 
     async def resolve(self, abstract: str | type) -> Any:
         abstract = self.get_alias(abstract)

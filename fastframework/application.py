@@ -10,6 +10,8 @@ from fastframework.container.container import Container
 from fastframework.container.utils import get_attr
 from fastframework.contracts.application import ApplicationInterface
 from fastframework.contracts.container.container import ContainerInterface
+from fastframework.support.facades.config import Config
+from fastframework.support.facades.facade import Facade
 
 
 class Application(ApplicationInterface):
@@ -27,9 +29,11 @@ class Application(ApplicationInterface):
         logger: Logger | None = None,
         **kwargs: Any,
     ) -> None:
-        self._container = Container(app=self)
+        self._container = Container(self)
+
+        Facade.set_facade_application(self)
         self._register_critical_services()
-        app_name = read_str("APP_NAME", "FastFramework Application")
+        app_name = Config.get("app.name")
 
         bootstrap_manager = BootstrapManager(
             self._get_logger(app_name, logger),

@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from fastframework.container import Resolves
 
 from app.services.foo import FooServiceInterface
+from fastframework.support.facades import Config
 
 router = APIRouter(tags=["System"])
 
@@ -21,4 +22,4 @@ async def status(service: Annotated[FooServiceInterface, Resolves()]) -> dict[st
         A dictionary with the status of the application.
     """
 
-    return {"app_name": service.get_app_name()}
+    return {"app_name": Config.get("app.name"), "status": "ok"}
