@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastframework.support.datetime import encode_datetime_to_iso_8601_with_z_suffix
+from pyrannic.support.datetime import encode_datetime_to_iso_8601_with_z_suffix
 
 
 def test_encode_datetime_to_iso_8601_with_z_suffix():

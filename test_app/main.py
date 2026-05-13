@@ -1,5 +1,6 @@
 import uvicorn
-from fastframework.application import Application
+
+from pyrannic.application import Application
 
 app = Application()
 

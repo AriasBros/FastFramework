@@ -2,9 +2,9 @@ from typing import Any, Optional
 
 from pydantic import Field
 
-from fastframework import Resource, ResourceCollection
-from fastframework.http.resources.collection import DataType
-from fastframework.pagination.meta import PaginationMeta
+from pyrannic import Resource, ResourceCollection
+from pyrannic.http.resources.collection import DataType
+from pyrannic.pagination.meta import PaginationMeta
 
 
 class Foo(Resource):

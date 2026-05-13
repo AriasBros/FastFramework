@@ -1,6 +1,6 @@
-from fastframework.bootstrap.service_provider import ServiceProvider
-
 from app.services.foo import FooService, FooServiceInterface
+
+from pyrannic.bootstrap.service_provider import ServiceProvider
 
 
 class AppServiceProvider(ServiceProvider):

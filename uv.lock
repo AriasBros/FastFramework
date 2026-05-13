@@ -147,7 +147,7 @@ standard-no-fastapi-cloud-cli = [
 ]
 
 [[package]]
-name = "fastframework"
+name = "pyrannic"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard-no-fastapi-cloud-cli"] },

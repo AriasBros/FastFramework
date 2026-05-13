@@ -1,7 +1,8 @@
 import logging
 
-from fastframework.config.base_config import BaseConfig
 from pydantic import Field
+
+from pyrannic.config.base_config import BaseConfig
 
 
 class LoggingConfig(BaseConfig):

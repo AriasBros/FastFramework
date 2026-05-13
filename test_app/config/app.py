@@ -1,5 +1,6 @@
-from fastframework.config.base_config import BaseConfig
 from pydantic import Field
+
+from pyrannic.config.base_config import BaseConfig
 
 
 class AppConfig(BaseConfig):

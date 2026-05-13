@@ -3,7 +3,7 @@ from typing import Annotated
 from app.services.foo import FooServiceInterface
 from fastapi import APIRouter
 
-from fastframework import Config, Paginator, Resolves
+from pyrannic import Config, Paginator, Resolves
 from test_app.app.http.resources.foo import Foo, FooCollection
 
 router = APIRouter(tags=["System"])
