@@ -1,54 +1,82 @@
 from contextlib import asynccontextmanager
 from logging import Logger
-from typing import AsyncGenerator, Type
+from typing import AsyncGenerator, Self, Sequence, Type
 
 from dotenv import load_dotenv
 
 from pyrannic.bootstrap.service_provider import ServiceProvider
-from pyrannic.contracts.application import ApplicationInterface
 from pyrannic.container.resolvers import resolve_dependant
+from pyrannic.container.utils import get_module_attr
+from pyrannic.contracts.application import ApplicationInterface
+from pyrannic.support.facades.facade import Facade
 
 
 class BootstrapManager:
-    _service_providers_classes: tuple[Type[ServiceProvider], ...]
-    _service_providers_instances: list[ServiceProvider]
-    _starting = False
+    _service_provider_classes: Sequence[Type[ServiceProvider]]
+    _service_provider_instances: list[ServiceProvider]
+    _running = False
+    _critical_services_started = False
 
     def __init__(
-        self, logger: Logger, *service_providers: Type[ServiceProvider]
+        self,
+        service_providers: list[Type[ServiceProvider]] | None = None,
     ) -> None:
-        self._logger = logger
-        self._service_providers_classes = service_providers
-        self._service_providers_instances = []
-        load_dotenv()
+        self._service_provider_classes = self._get_service_providers(service_providers)
+        self._service_provider_instances = []
 
-    def run(self, app: ApplicationInterface) -> None:
-        self._starting = True
+    def start_critical_services(
+        self,
+        app: ApplicationInterface,
+        services: list[type[ServiceProvider]],
+    ) -> Self:
+        """Configure critical services like config, logging, etc. that may be needed during the bootstrapping process."""
+        load_dotenv()
+        Facade.set_facade_application(app)
+
+        for provider_class in services:
+            provider_class(app).register()
+
+        self._critical_services_started = True
+
+        return self
+
+    def run(self, app: ApplicationInterface) -> Self:
+        """Registers service providers and starts the bootstrapping process."""
+
+        if not self._critical_services_started:
+            raise RuntimeError(
+                "Critical services must be started before running the bootstrap manager"
+            )
+
+        self._running = True
+        self._logger = app.container.instance(Logger)
         self._logger.info("🕒 Initializing application...")
 
-        for ProviderClass in self._service_providers_classes:
+        for ProviderClass in self._service_provider_classes:
             provider = ProviderClass(app, self._logger)
             name = ProviderClass.__name__
 
             try:
-                self._service_providers_instances.append(provider)
+                self._service_provider_instances.append(provider)
                 self._register_provider(provider)
                 self._logger.info(f"✅ Registered {name}")
             except Exception as e:
                 self._provider_exec_failed(provider, "register", e)
 
+        return self
+
     @asynccontextmanager
     async def lifespan(self, app: ApplicationInterface) -> AsyncGenerator[None, None]:
-        self._logger.info("🚀 Starting up application...")
+        self._logger.info("↗️  Starting up application...")
 
         await self._walk_providers(app, "initialize", "Initialized")
         await self._walk_providers(app, "boot", "Booted")
-        self._starting = False
 
         yield
 
+        self._running = False
+        self._logger.info("↘️  Shutting down application...")
         await self._walk_providers(app, "shutdown", "Shutdown", should_reverse=True)
-
         self._logger.info("✅ Resources released and application shutdown complete")
 
     async def _walk_providers(
@@ -59,9 +87,9 @@ class BootstrapManager:
         should_reverse: bool = False,
     ) -> None:
         providers = (
-            self._service_providers_instances[::-1]
+            self._service_provider_instances[::-1]
             if should_reverse
-            else self._service_providers_instances
+            else self._service_provider_instances
         )
 
         for provider in providers:
@@ -83,7 +111,7 @@ class BootstrapManager:
     ):
         name = provider.__class__.__name__
 
-        if self._starting and provider.is_critical:
+        if self._running and provider.is_critical:
             self._logger.critical(
                 f"❌  {name} failed to {method_name}, cannot start app"
             )
@@ -93,7 +121,7 @@ class BootstrapManager:
                 f"⚠️  {name} failed to {method_name} properly: {exception}"
             )
 
-            if self._starting:
+            if self._running:
                 provider.failed(method_name)
 
     def _register_provider(self, provider: ServiceProvider):
@@ -101,3 +129,12 @@ class BootstrapManager:
             provider.app.container.bind(abstract, concrete)
 
         provider.register()
+
+    def _get_service_providers(
+        self,
+        service_providers: list[Type[ServiceProvider]] | None = None,
+    ) -> list[Type[ServiceProvider]]:
+        if service_providers:
+            return service_providers
+
+        return get_module_attr("bootstrap.providers", "providers", [])

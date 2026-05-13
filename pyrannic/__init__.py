@@ -1,5 +1,6 @@
 __version__ = "0.0.1"
 
+from .application import Application as Application
 from .container.param_functions import Resolves as Resolves
 from .http.resources.collection import ResourceCollection as ResourceCollection
 from .http.resources.resource import Resource as Resource

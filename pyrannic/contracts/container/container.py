@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
+from annotated_types import T
+
 
 class ContainerInterface(ABC):
     @abstractmethod
@@ -23,7 +25,7 @@ class ContainerInterface(ABC):
         pass
 
     @abstractmethod
-    def instance(self, abstract: str | type, instance: Any = None) -> Any | None:
+    def instance(self, abstract: str | type[T], instance: T | None = None) -> T:
         """Register an existing instance as shared in the container or retrieve it from the container."""
         pass
 
@@ -32,11 +34,11 @@ class ContainerInterface(ABC):
         pass
 
     @abstractmethod
-    async def resolve(self, abstract: str | type) -> Any:
+    async def resolve(self, abstract: str | type[T]) -> T:
         pass
 
     @abstractmethod
-    async def call(self, callback: type | Callable[..., Any]) -> Any:
+    async def call(self, callback: type[T] | Callable[..., Any]) -> T:
         """Call the given callback (Closure, class@method...) and inject its dependencies."""
         pass
 

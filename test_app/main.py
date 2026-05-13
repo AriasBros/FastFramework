@@ -1,6 +1,6 @@
 import uvicorn
 
-from pyrannic.application import Application
+from pyrannic import Application
 
 app = Application()
 

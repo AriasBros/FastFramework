@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from annotated_types import T
+
 
 class ConfigRepositoryInterface(ABC):
     @abstractmethod
@@ -9,7 +11,7 @@ class ConfigRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def get(self, name: str, default: Any | None = None) -> Any | None:
+    def get(self, name: str, default: Any | None = None) -> object | None:
         """Get the specified configuration value."""
         pass
 
@@ -24,21 +26,26 @@ class ConfigRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def string(self, name: str, default: str | None = None) -> str | None:
+    def string(self, name: str, default: str = "") -> str:
         """Get the specified configuration value as a string."""
         pass
 
     @abstractmethod
-    def integer(self, name: str, default: int | None = None) -> int | None:
+    def integer(self, name: str, default: int = 0) -> int:
         """Get the specified configuration value as an integer."""
         pass
 
     @abstractmethod
-    def float(self, name: str, default: float | None = None) -> float | None:
+    def float(self, name: str, default: float = 0.0) -> float:
         """Get the specified configuration value as a float."""
         pass
 
     @abstractmethod
-    def boolean(self, name: str, default: bool | None = None) -> bool | None:
+    def boolean(self, name: str, default: bool = False) -> bool:
         """Get the specified configuration value as a boolean."""
+        pass
+
+    @abstractmethod
+    def array(self, name: str, default: list[T]) -> list[T]:
+        """Get the specified configuration value as a list."""
         pass

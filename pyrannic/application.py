@@ -1,49 +1,40 @@
-import logging
-from logging import Logger
 from typing import Any
 
 from pyrannic.bootstrap.manager import BootstrapManager
 from pyrannic.bootstrap.service_provider import ServiceProvider
-from pyrannic.config.env import read_bool, read_str
 from pyrannic.config.provider import ConfigRepositoryProvider
 from pyrannic.container.container import Container
-from pyrannic.container.utils import get_attr
 from pyrannic.contracts.application import ApplicationInterface
 from pyrannic.contracts.container.container import ContainerInterface
+from pyrannic.logging.provider import LoggingServiceProvider
 from pyrannic.support.facades.config import Config
-from pyrannic.support.facades.facade import Facade
 
 
 class Application(ApplicationInterface):
-    _critical_service_providers = [
+    _critical_service_providers: list[type[ServiceProvider]] = [
         ConfigRepositoryProvider,
-        # LoggingServiceProvider,
+        LoggingServiceProvider,
     ]
-
-    _container: ContainerInterface
 
     def __init__(
         self,
-        *service_providers: type[ServiceProvider],
+        *,
+        debug: bool = False,
         version: str = "0.1.0",
-        logger: Logger | None = None,
+        title: str | None = None,
         **kwargs: Any,
     ) -> None:
-        self._container = Container(self)
-
-        Facade.set_facade_application(self)
-        self._register_critical_services()
-        app_name = Config.get("app.name")
-
-        bootstrap_manager = BootstrapManager(
-            self._get_logger(app_name, logger),
-            *self._get_service_providers(*service_providers),
+        bootstrap_manager = BootstrapManager().start_critical_services(
+            self,
+            self._critical_service_providers,
         )
+
+        app_name = Config.string("app.name", title or "Pyrannic Application")
 
         super().__init__(
             title=app_name,
-            debug=read_bool("APP_DEBUG"),
-            version=read_str("APP_VERSION", version),
+            debug=Config.boolean("app.debug", debug),
+            version=Config.string("APP_VERSION", version),
             lifespan=bootstrap_manager.lifespan,
             **kwargs,
         )
@@ -52,29 +43,7 @@ class Application(ApplicationInterface):
 
     @property
     def container(self) -> ContainerInterface:
+        if not hasattr(self, "_container"):
+            self._container = Container(self)
+
         return self._container
-
-    def _register_critical_services(self):
-        """Register critical services like config, logging, etc. that may be needed during the bootstrapping process."""
-        for provider_class in self._critical_service_providers:
-            provider_class(app=self).register()
-
-    def _get_logger(self, app_name: str, logger: Logger | None) -> Logger:
-        if logger is not None:
-            return logger
-
-        # TODO - We need to load the config repository before the bootstrap manager.
-
-        default_logger = Logger(app_name)
-        default_logger.setLevel(logging.DEBUG)
-        default_logger.addHandler(logging.StreamHandler())
-
-        return default_logger
-
-    def _get_service_providers(
-        self, *service_providers: type[ServiceProvider]
-    ) -> tuple[type[ServiceProvider], ...]:
-        if len(service_providers) > 0:
-            return service_providers
-
-        return get_attr("bootstrap.providers", "providers", ())

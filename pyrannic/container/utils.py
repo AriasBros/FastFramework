@@ -35,13 +35,18 @@ def _get_attr(module: ModuleType, attr_name: str, default: Any = None) -> Any:
         return default
 
 
-def get_attr(module: str, attr_name: str, default: Any = None) -> Any:
+def get_module_attr(
+    module: str | ModuleType,
+    attr_name: str,
+    default: Any = None,
+) -> Any:
     """Imports and returns the specified attribute from the given module."""
 
-    module = module.replace("\\", "/").replace("/", ".").replace(".py", "")
-    imported_module = importlib.import_module(module)
+    if isinstance(module, str):
+        module = module.replace("\\", "/").replace("/", ".").replace(".py", "")
+        module = importlib.import_module(module)
 
-    return _get_attr(imported_module, attr_name, default)
+    return _get_attr(module, attr_name, default)
 
 
 def get_attrs(modules: list[str], attr_name: str) -> list[Any]:
@@ -50,7 +55,7 @@ def get_attrs(modules: list[str], attr_name: str) -> list[Any]:
     attrs: list[Any] = []
 
     for module in modules:
-        attr = get_attr(module, attr_name)
+        attr = get_module_attr(module, attr_name)
 
         if attr is not None:
             attrs.append(attr)

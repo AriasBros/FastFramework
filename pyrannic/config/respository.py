@@ -1,5 +1,7 @@
 from typing import Any
 
+from annotated_types import T
+
 from pyrannic.collections.dot_dict import get, has, set
 from pyrannic.contracts.config.respository import ConfigRepositoryInterface
 
@@ -10,7 +12,7 @@ class ConfigRepository(ConfigRepositoryInterface):
     def __init__(self, items: dict[str, Any] = dict()) -> None:
         self._items = items
 
-    def __getattr__(self, name: str, default: Any | None = None) -> Any | None:
+    def __getattr__(self, name: str, default: Any = None) -> Any:
         return get(self._items, name, default)
 
     def __hasattr__(self, name: str) -> bool:
@@ -28,11 +30,14 @@ class ConfigRepository(ConfigRepositoryInterface):
     def set(self, name: str, value: Any) -> None:
         set(self._items, name, value)
 
-    def string(self, name: str, default: str | None = None) -> str | None:
+    def optional_string(self, name: str, default: str | None = None) -> str | None:
         value = self.get(name, default)
         return str(value) if value is not None else default
 
-    def integer(self, name: str, default: int | None = None) -> int | None:
+    def string(self, name: str, default: str = "") -> str:
+        return self.optional_string(name, default) or default
+
+    def integer(self, name: str, default: int = 0) -> int:
         value = self.get(name, default)
 
         try:
@@ -40,7 +45,7 @@ class ConfigRepository(ConfigRepositoryInterface):
         except (ValueError, TypeError):
             return default
 
-    def float(self, name: str, default: float | None = None) -> float | None:
+    def float(self, name: str, default: float = 0.0) -> float:
         value = self.get(name, default)
 
         try:
@@ -48,7 +53,7 @@ class ConfigRepository(ConfigRepositoryInterface):
         except (ValueError, TypeError):
             return default
 
-    def boolean(self, name: str, default: bool | None = None) -> bool | None:
+    def boolean(self, name: str, default: bool = False) -> bool:
         value = self.get(name, default)
 
         if isinstance(value, bool):
@@ -59,3 +64,7 @@ class ConfigRepository(ConfigRepositoryInterface):
             return value != 0
 
         return default
+
+    def array(self, name: str, default: list[T]) -> list[T]:
+        value = self.get(name, default)
+        return list(value) if value is not None else default

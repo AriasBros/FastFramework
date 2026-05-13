@@ -1,4 +1,6 @@
-from typing import Any
+from typing import Any, Generic
+
+from annotated_types import T
 
 from pyrannic.contracts.application import ApplicationInterface
 
@@ -9,18 +11,17 @@ class FacadeMetaclass(type):
         return getattr(instance, key)
 
 
-class Facade(metaclass=FacadeMetaclass):
+class Facade(Generic[T], metaclass=FacadeMetaclass):
     _app: ApplicationInterface | None = None
     """The application instance being facaded."""
 
-    _cached: bool = True
-    """Indicates if the resolved instance should be cached."""
-
-    _resolved_instances: dict[str, Any] = {}
-    """The resolved object instances."""
+    @classmethod
+    def call(cls, name: str, *args: Any, **kwargs: Any) -> Any:
+        instance = cls._get_facade_root()
+        return getattr(instance, name)(*args, **kwargs)
 
     @classmethod
-    def _get_facade_root(cls) -> Any:
+    def _get_facade_root(cls) -> T:
         return cls._resolve_facade_instance(cls._get_facade_accessor())
 
     @classmethod
@@ -30,17 +31,9 @@ class Facade(metaclass=FacadeMetaclass):
         )
 
     @classmethod
-    def _resolve_facade_instance(cls, name: str) -> Any:
-        if name in cls._resolved_instances:
-            return cls._resolved_instances[name]
-
-        if cls._app is not None:
-            instance = cls._app.container.instance(name)
-
-            if cls._cached:
-                cls._resolved_instances[name] = instance
-
-            return instance
+    def _resolve_facade_instance(cls, name: str) -> T:
+        assert cls._app is not None, "Facade application instance has not been set."
+        return cls._app.container.instance(name)
 
     @classmethod
     def set_facade_application(cls, app: ApplicationInterface) -> None:

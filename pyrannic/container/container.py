@@ -3,6 +3,8 @@ from inspect import isclass
 from types import FunctionType
 from typing import Any
 
+from annotated_types import T
+
 from pyrannic.container.resolvers import resolve, resolve_dependant
 from pyrannic.contracts.application import ApplicationInterface
 from pyrannic.contracts.container.container import ContainerInterface
@@ -11,7 +13,7 @@ from pyrannic.contracts.container.container import ContainerInterface
 class Container(ContainerInterface):
     _app: ApplicationInterface
     _bindings: dict[str | type, Callable[..., Any]]
-    _instances: dict[str | type, object]
+    _instances: dict[str | type, Any]
     _aliases: dict[str | type, str | type]
 
     def __init__(self, app: ApplicationInterface):
@@ -43,18 +45,25 @@ class Container(ContainerInterface):
         if not self.is_bound(abstract):
             self.bind(abstract, concrete)
 
-    def instance(self, abstract: str | type, instance: Any = None) -> Any | None:
+    def instance(self, abstract: str | type[T], instance: T | None = None) -> T:
         if instance is None:
             abstract = self.get_alias(abstract)
-            return self._instances.get(abstract)
+            instance = self._instances.get(abstract)
+
+            if not instance:
+                raise ValueError(f"No instance found for {abstract}")
+
+            return instance
 
         self._dropStaleInstances(abstract)
         self._instances[abstract] = instance
 
+        return instance
+
     def is_bound(self, abstract: str | type) -> bool:
         return abstract in self._bindings or self.is_alias(abstract)
 
-    async def resolve(self, abstract: str | type) -> Any:
+    async def resolve(self, abstract: str | type[T]) -> T:
         abstract = self.get_alias(abstract)
 
         if abstract in self._instances:
@@ -70,10 +79,10 @@ class Container(ContainerInterface):
 
         return instance
 
-    async def call(self, callback: type | Callable[..., Any]) -> Any:
+    async def call(self, callback: type[T] | Callable[..., Any]) -> T:
         return await resolve_dependant(callback, app=self._app)
 
-    def resolved(self, abstract: str | type) -> bool:
+    def resolved(self, abstract: str | type[T]) -> bool:
         abstract = self.get_alias(abstract)
         return abstract in self._instances
 

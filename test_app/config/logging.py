@@ -15,3 +15,7 @@ class LoggingConfig(BaseConfig):
     )
     """A list of logging handlers to use for the application.
     Handlers determine where the log messages are output, such as to the console, a file, or a remote logging server."""
+
+    @property
+    def config_key(self) -> str:
+        return "log"
