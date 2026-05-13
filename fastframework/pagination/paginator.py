@@ -1,12 +1,13 @@
 import math
-from typing import Generic, TypeVar
+from typing import Any, TypeVar
 
-from .meta import PaginationMeta
+from fastframework.contracts.pagination.paginator import PaginatorInterface
+from fastframework.pagination.meta import PaginationMeta
 
-T = TypeVar("T")
+ItemType = TypeVar("ItemType", covariant=True)
 
 
-class Paginator(Generic[T]):
+class Paginator(PaginatorInterface[ItemType, PaginationMeta]):
     """
     A generic class that describes a paginator. This exposes two public properties:
 
@@ -14,21 +15,21 @@ class Paginator(Generic[T]):
     - meta: Give us a PaginationMeta instance with meta information about the paginator.
     """
 
-    __items: list[T]
+    __items: list[ItemType]
     __page: int = 1
     __total: int = 0
     __per_page: int
     __last_page: int | None
-    __kwargs: dict | None
+    __kwargs: dict[str, Any] | None
 
     def __init__(
         self,
-        items: list[T],
+        items: list[ItemType],
         page: int = 1,
         per_page: int = 15,
         total: int = 0,
         last_page: int = 1,
-        **kwargs,
+        **kwargs: Any,
     ):
         self.__items = items
         self.__page = page
@@ -38,7 +39,7 @@ class Paginator(Generic[T]):
         self.__kwargs = kwargs
 
     @property
-    def items(self) -> list[T]:
+    def items(self) -> list[ItemType]:
         return self.__items
 
     def meta(self, meta_class: type[PaginationMeta]) -> PaginationMeta:
@@ -53,8 +54,8 @@ class Paginator(Generic[T]):
                 "from": 0
                 if self.__total == 0
                 else (self.__page - 1) * self.__per_page + 1,
-                **self.__kwargs,
             },
+            **(self.__kwargs or {}),
         )
 
     def __repr__(self):
