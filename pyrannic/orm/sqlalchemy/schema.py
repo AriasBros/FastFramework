@@ -1,7 +1,7 @@
 from logging import Logger
 from typing import Any, Callable
 
-from sqlalchemy import FromClause
+from sqlalchemy import Engine, FromClause
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -9,10 +9,10 @@ from pyrannic.contracts.database.schema import SchemaInterface
 
 
 class Schema(SchemaInterface):
-    _engine: AsyncEngine
+    _engine: AsyncEngine | Engine
     _logger: Logger
 
-    def __init__(self, engine: AsyncEngine, logger: Logger):
+    def __init__(self, engine: AsyncEngine | Engine, logger: Logger):
         self._engine = engine
         self._logger = logger
 
@@ -46,7 +46,10 @@ class Schema(SchemaInterface):
         exception_msg: str,
     ) -> None:
         try:
-            async with self._engine.begin() as conn:
-                await conn.run_sync(callback, tables=[table])
+            if isinstance(self._engine, AsyncEngine):
+                async with self._engine.begin() as conn:
+                    await conn.run_sync(callback, tables=[table])
+            else:
+                callback(self._engine, tables=[table])
         except Exception as e:
             self._logger.error(exception_msg.format(table_name, str(e)))

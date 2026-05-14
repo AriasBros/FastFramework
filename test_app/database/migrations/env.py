@@ -2,12 +2,9 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import URL, pool
+from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from backend.src.app.database.config import DatabaseConfig
-from backend.src.app.utils import get_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -38,13 +35,11 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
+    """In this scenario we need to create an Engine and associate a connection with the context."""
 
     config_data = config.get_section(config.config_ini_section, {})
 
+    """ TODO: If the URL is not set in the config, we can construct it from the settings.
     if not config_data.get("sqlalchemy.url"):
         database_config = DatabaseConfig.from_settings(get_settings())
         url = URL.create(
@@ -56,6 +51,7 @@ async def run_async_migrations() -> None:
             database=database_config.database,
         )
         config_data["sqlalchemy.url"] = url.render_as_string(hide_password=False)
+    """
 
     connectable = async_engine_from_config(
         config_data,

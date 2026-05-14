@@ -13,8 +13,9 @@ class DatabaseManager(ConnectorInterface):
     ) -> None:
         self._connector = connector
 
-    async def connection(self):
-        return await self._connector.connection()
+    @property
+    def connection(self):
+        return self._connector.connection
 
     async def disconnect(self) -> None:
         await self._connector.disconnect()
@@ -25,7 +26,6 @@ class DatabaseManager(ConnectorInterface):
     ) -> None:
         if migrations is None:
             modules = get_modules("database/migrations/tables")
-            print(modules)
-            migrations = get_classes(modules)
+            migrations = get_classes(modules, class_suffix="Table")
 
         await self._connector.migrate(migrations)

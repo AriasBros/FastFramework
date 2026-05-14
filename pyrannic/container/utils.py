@@ -81,7 +81,7 @@ def get_class(
 
 
 def get_classes(modules: list[str], class_suffix: str = "") -> list[type]:
-    """Imports and returns a list of classes with the given name from the specified modules."""
+    """Imports and returns a list of classes with the given suffix from the specified modules."""
 
     classes: list[type] = []
 

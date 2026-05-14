@@ -5,10 +5,11 @@ from pyrannic.contracts.database.migration import MigrationInterface
 
 
 class ConnectorInterface(ABC):
+    @property
     @abstractmethod
-    async def connection(self) -> Any:
+    def connection(self) -> Any:
         """
-        Establishes a connection to the database.
+        Establishes and returns a connection to the database.
         """
         pass
 

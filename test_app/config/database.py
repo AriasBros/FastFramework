@@ -1,23 +1,37 @@
-import logging
-
 from pydantic import Field
 
 from pyrannic import Configuration
 
 
-class DatabaseConfig(Configuration):
-    default: str = Field(default="sqlite", alias="connection")
-    """Here you may specify which of the database connections below you wish 
-    to use as your default connection for database operations. This is 
-    the connection which will be utilized unless another connection
-    is explicitly specified when you execute a query / statement."""
-
-    handlers: list[logging.Handler] = Field(
-        default_factory=lambda: [logging.StreamHandler()]
-    )
-    """A list of logging handlers to use for the application.
-    Handlers determine where the log messages are output, such as to the console, a file, or a remote logging server."""
-
+class _DatabaseConfig(Configuration):
     @property
     def env_prefix(self) -> str:
         return "DB_"
+
+
+class SqliteConfig(_DatabaseConfig):
+    driver: str = "sqlite"
+    """The database driver to use."""
+
+    url: str | None = Field(default=None)
+
+    database: str = Field(default="database/database.sqlite")
+    """File path for SQLite database."""
+
+
+class ConnectionsConfig(_DatabaseConfig):
+    sqlite: SqliteConfig = Field(default=SqliteConfig())
+    """Configuration for SQLite database connection."""
+
+
+class MigrationsConfig(_DatabaseConfig):
+    alembic: bool = Field(default=True)
+    """Whether to run Alembic migrations after running the provided migration classes."""
+
+
+class DatabaseConfig(_DatabaseConfig):
+    connections: ConnectionsConfig = Field(default=ConnectionsConfig())
+    """Configuration for database connections."""
+
+    migrations: MigrationsConfig = Field(default=MigrationsConfig())
+    """Configuration for database migrations."""

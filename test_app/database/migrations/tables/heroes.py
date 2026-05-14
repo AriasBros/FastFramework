@@ -2,7 +2,7 @@ from pyrannic import Migration
 from test_app.app.models.hero import Hero
 
 
-class CreateHeroesTable(Migration):
+class HeroesTable(Migration):
     """
     Migration to create the 'heroes' table.
     """

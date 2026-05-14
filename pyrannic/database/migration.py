@@ -5,5 +5,5 @@ from pyrannic.contracts.database.schema import SchemaInterface
 class Migration(MigrationInterface):
     schema: SchemaInterface
 
-    def __init__(self, schema: SchemaInterface):
+    def set_schema(self, schema: SchemaInterface) -> None:
         self.schema = schema

@@ -2,7 +2,7 @@ from typing import Any
 
 from annotated_types import T
 
-from pyrannic.collections.dot_dict import get, has, set
+from pyrannic.support.collections.dot_dict import get, has, set
 from pyrannic.contracts.config.respository import ConfigRepositoryInterface
 
 
