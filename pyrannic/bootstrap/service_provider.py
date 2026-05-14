@@ -3,6 +3,7 @@ from logging import Logger
 from typing import Any
 
 from pyrannic.contracts.application import ApplicationInterface
+from pyrannic.contracts.container.container import ContainerInterface
 
 
 class ServiceProvider(ABC):
@@ -11,11 +12,14 @@ class ServiceProvider(ABC):
         self.logger = logger
 
     __bindings__: dict[str | type, type] = {}
-    """
-    Return a dictionary of bindings to be registered in the application's container.
-    The keys of the dictionary should be the abstract types (interfaces or base classes), and the values should be the concrete implementations that will be resolved when the abstract types are requested from the container.
-    This property is used during the registration phase of the service provider to set up the necessary bindings in the application's container.
-    """
+    """All of the container bindings that should be registered."""
+
+    __singletons__: dict[str | type, type] = {}
+    """All of the container singletons that should be registered."""
+
+    @property
+    def container(self) -> ContainerInterface:
+        return self.app.container
 
     @property
     def is_critical(self) -> bool:
@@ -33,7 +37,7 @@ class ServiceProvider(ABC):
         """
         pass
 
-    def initialize(self):
+    def initialize(self, *args: Any, **kwargs: Any) -> Any:
         """
         Initialize services and other components.
         This method is called after the application has been fully initialized, and it should be used to perform any necessary setup that requires the application to be fully functional.
@@ -41,7 +45,7 @@ class ServiceProvider(ABC):
         """
         pass
 
-    def boot(self) -> Any:
+    def boot(self, *args: Any, **kwargs: Any) -> Any:
         """
         Boot services and other components.
         This method is called after the application has been fully initialized and all services have been registered and initialized, and it should be used to perform any necessary setup that requires all services to be fully functional.
@@ -49,7 +53,7 @@ class ServiceProvider(ABC):
         """
         pass
 
-    def shutdown(self):
+    def shutdown(self, *args: Any, **kwargs: Any) -> Any:
         """
         Shutdown services and other components.
         This method is called during the application shutdown phase, and it should be used to perform any necessary cleanup operations.

@@ -26,7 +26,9 @@ class Container(ContainerInterface):
         self,
         abstract: str | type,
         concrete: type[Any] | Callable[..., Any],
+        shared: bool = False,
     ) -> None:
+        # NOTE: For now all instances are shared, we can add support for non-shared instances in the future if needed.
         self._dropStaleInstances(abstract)
 
         if isclass(concrete):
@@ -41,9 +43,25 @@ class Container(ContainerInterface):
         self,
         abstract: str | type,
         concrete: type[Any] | Callable[..., Any],
+        shared: bool = False,
     ) -> None:
         if not self.is_bound(abstract):
-            self.bind(abstract, concrete)
+            self.bind(abstract, concrete, shared)
+
+    def singleton(
+        self,
+        abstract: str | type,
+        concrete: type[Any] | Callable[..., Any],
+    ) -> None:
+        self.bind(abstract, concrete, True)
+
+    def singleton_if(
+        self,
+        abstract: str | type,
+        concrete: type[Any] | Callable[..., Any],
+    ) -> None:
+        if not self.is_bound(abstract):
+            self.singleton(abstract, concrete)
 
     def instance(self, abstract: str | type[T], instance: T | None = None) -> T:
         if instance is None:

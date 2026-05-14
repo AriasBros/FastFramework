@@ -1,0 +1,20 @@
+from pyrannic import Migration
+from test_app.app.models.hero import Hero
+
+
+class CreateHeroesTable(Migration):
+    """
+    Migration to create the 'heroes' table.
+    """
+
+    async def up(self) -> None:
+        """
+        Apply the migration: create the 'heroes' table.
+        """
+        await self.schema.create(Hero)
+
+    async def down(self) -> None:
+        """
+        Revert the migration: drop the 'heroes' table.
+        """
+        await self.schema.drop(Hero)

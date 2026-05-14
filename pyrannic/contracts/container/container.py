@@ -11,6 +11,7 @@ class ContainerInterface(ABC):
         self,
         abstract: str | type,
         concrete: type[Any] | Callable[..., Any],
+        shared: bool = False,
     ) -> None:
         """Register a binding with the container."""
         pass
@@ -20,8 +21,27 @@ class ContainerInterface(ABC):
         self,
         abstract: str | type,
         concrete: type[Any] | Callable[..., Any],
+        shared: bool = False,
     ) -> None:
         """Register a binding if it hasn't already been registered."""
+        pass
+
+    @abstractmethod
+    def singleton(
+        self,
+        abstract: str | type,
+        concrete: type[Any] | Callable[..., Any],
+    ) -> None:
+        """Register a shared binding in the container."""
+        pass
+
+    @abstractmethod
+    def singleton_if(
+        self,
+        abstract: str | type,
+        concrete: type[Any] | Callable[..., Any],
+    ) -> None:
+        """Register a shared binding if it hasn't already been registered."""
         pass
 
     @abstractmethod

@@ -1,3 +1,5 @@
+from .database.connector import ConnectorInterface as ConnectorInterface
+from .database.manager import DatabaseManagerInterface as DatabaseManagerInterface
 from .http.resources.collection import (
     ResourceCollectionInterface as ResourceCollectionInterface,
 )

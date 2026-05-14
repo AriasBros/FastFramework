@@ -35,3 +35,24 @@ async def status2() -> FooCollection:
     )
 
     return FooCollection(items)
+
+
+@router.get(
+    "/heroes",
+    summary="Heroes Endpoint",
+    description="Endpoint to retrieve the list of heroes.",
+)
+async def heroes() -> FooCollection:
+    # hero = HeroModel(name="Superman", description="The Man of Steel")
+
+    items = Paginator(
+        [
+            Foo(name="status", description="The application is running smoothly."),
+            Foo(
+                name="uptime",
+                description="The application has been running for 24 hours.",
+            ),
+        ]
+    )
+
+    return FooCollection(items)

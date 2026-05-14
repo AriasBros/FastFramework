@@ -5,10 +5,12 @@ from pydantic import Field
 from pyrannic import Configuration
 
 
-class LoggingConfig(Configuration):
-    level: int = Field(default=logging.DEBUG)
-    """The logging level to use for the application.
-    This can be set to any of the standard logging levels (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)."""
+class DatabaseConfig(Configuration):
+    default: str = Field(default="sqlite", alias="connection")
+    """Here you may specify which of the database connections below you wish 
+    to use as your default connection for database operations. This is 
+    the connection which will be utilized unless another connection
+    is explicitly specified when you execute a query / statement."""
 
     handlers: list[logging.Handler] = Field(
         default_factory=lambda: [logging.StreamHandler()]
@@ -18,4 +20,4 @@ class LoggingConfig(Configuration):
 
     @property
     def env_prefix(self) -> str:
-        return "LOG_"
+        return "DB_"

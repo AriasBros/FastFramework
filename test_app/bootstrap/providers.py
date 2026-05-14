@@ -2,14 +2,16 @@ from typing import Type
 
 from app.providers.app import AppServiceProvider
 
-from pyrannic.bootstrap.service_provider import ServiceProvider
-from pyrannic.http.providers import (
+from pyrannic import (
+    DatabaseServiceProvider,
     MiddlewaresServiceProvider,
     RoutersServiceProvider,
+    ServiceProvider,
 )
 
 providers: list[Type[ServiceProvider]] = [
     AppServiceProvider,
+    DatabaseServiceProvider,
     RoutersServiceProvider,
     MiddlewaresServiceProvider,
 ]

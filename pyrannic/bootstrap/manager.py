@@ -128,6 +128,9 @@ class BootstrapManager:
         for abstract, concrete in provider.__bindings__.items():
             provider.app.container.bind(abstract, concrete)
 
+        for abstract, concrete in provider.__singletons__.items():
+            provider.app.container.singleton(abstract, concrete)
+
         provider.register()
 
     def _get_service_providers(

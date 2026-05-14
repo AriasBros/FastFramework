@@ -1,5 +1,5 @@
 from pyrannic.bootstrap.instance_service_provider import InstanceServiceProvider
-from pyrannic.config.base_config import BaseConfig
+from pyrannic.contracts.config.config import ConfigInterface
 from pyrannic.config.respository import ConfigRepository
 from pyrannic.container.utils import get_classes, get_modules
 from pyrannic.contracts.config.respository import ConfigRepositoryInterface
@@ -17,7 +17,7 @@ class ConfigRepositoryProvider(InstanceServiceProvider[ConfigRepositoryInterface
         classes = get_classes(modules, "Config")
 
         for cls in classes:
-            instance: BaseConfig = cls()
-            repo.set(instance.config_key, instance.model_dump())
+            instance: ConfigInterface = cls()
+            repo.set(instance.config_key, instance.to_dict())
 
         return repo

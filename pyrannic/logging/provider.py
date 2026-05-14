@@ -12,9 +12,9 @@ class LoggingServiceProvider(InstanceServiceProvider[Logger]):
 
     def create(self) -> Logger:
         logger = Logger("log")
-        logger.setLevel(Config.integer("log.level", logging.DEBUG))
+        logger.setLevel(Config.integer("logging.level", logging.DEBUG))
 
-        handlers = Config.array("log.handlers", [logging.StreamHandler()])
+        handlers = Config.array("logging.handlers", [logging.StreamHandler()])
         for handler in handlers:
             logger.addHandler(handler)
 
