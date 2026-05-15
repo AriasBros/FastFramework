@@ -20,6 +20,24 @@ def index(
     return HeroesCollection(repository.select().get())
 
 
+@router.get(
+    "/heroes/{hero_id}",
+    summary="Get Hero Endpoint",
+    description="Endpoint to retrieve a specific hero by ID.",
+)
+def show(
+    hero_id: str,
+    repository: Annotated[HeroesRepository, Depends()],
+) -> Hero:
+    # where(id=hero_id)
+    hero = repository.select().first()
+
+    if not hero:
+        raise Exception("Hero not found")  # TODO - Add exception Resource Not Found
+
+    return Hero.from_model(hero)
+
+
 @router.post(
     "/heroes",
     summary="Create Hero Endpoint",
