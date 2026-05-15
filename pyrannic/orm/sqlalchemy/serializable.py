@@ -1,9 +1,10 @@
 from typing import Any
 
 from pyrannic.contracts.support.serializable import SerializableInterface
+from pyrannic.orm.sqlalchemy.inspectionable import Inspectionable
 
 
-class Serializable(SerializableInterface):
+class Serializable(Inspectionable, SerializableInterface):
     def to_dict(
         self,
         nested: bool = False,

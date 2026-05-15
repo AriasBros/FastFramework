@@ -18,7 +18,7 @@ class RepositoryInterface(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def create(self, model: T) -> T:
+    async def create(self, model: T) -> T:
         pass
 
     '''
@@ -40,11 +40,11 @@ class RepositoryInterface(ABC, Generic[T]):
     '''
 
     @abstractmethod
-    def first(self) -> T | None:
+    async def first(self) -> T | None:
         """Retrieve the first record of the model."""
         pass
 
     @abstractmethod
-    def get(self) -> list[T]:
+    async def get(self) -> list[T]:
         """Retrieve all records matching the current query."""
         pass

@@ -14,9 +14,9 @@ class Resource(ResourceInterface):
         cls,
         model: SerializableInterface,
         with_relationships: bool | list[str] = True,
-    ) -> Self | None:
+    ) -> Self:
         cls._with_relationships = with_relationships
-        return cls.model_validate(cls.model_to_dict(model)) if model else None
+        return cls.model_validate(cls.model_to_dict(model))
 
     @classmethod
     def model_to_dict(cls, model: SerializableInterface) -> dict[str, Any]:

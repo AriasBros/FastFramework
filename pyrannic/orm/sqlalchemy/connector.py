@@ -1,14 +1,15 @@
 import asyncio
+from abc import ABC, abstractmethod
 from logging import Logger
-from typing import Annotated, Any
+from typing import Annotated, Any, Generic, TypeVar
 
+from sqlalchemy import URL, Engine, create_engine
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy import URL, Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from pyrannic.container.params import Resolves
@@ -17,16 +18,24 @@ from pyrannic.contracts.database.connector import ConnectorInterface
 from pyrannic.contracts.database.migration import MigrationInterface
 from pyrannic.orm.sqlalchemy.schema import Schema
 
+EngineType = TypeVar("EngineType", bound=Engine | AsyncEngine)
+SessionType = TypeVar(
+    "SessionType",
+    bound=sessionmaker[Session] | async_sessionmaker[AsyncSession],
+)
 
-class SqlAlchemyConnector(ConnectorInterface):
+
+class AbstractSqlAlchemyConnector(
+    ConnectorInterface, ABC, Generic[EngineType, SessionType]
+):
     """
-    Handles synchronous interactions with an SQL Database using SQLAlchemy.
+    Handles interactions with an SQL Database using SQLAlchemy.
     """
 
     _logger: Logger
     _config: ConfigRepositoryInterface
-    _engine: Engine | None
-    _session: sessionmaker[Session] | None
+    _engine: EngineType | None
+    _session: SessionType | None
 
     def __init__(
         self,
@@ -46,18 +55,9 @@ class SqlAlchemyConnector(ConnectorInterface):
             self._session = None
 
     @property
-    def connection(self) -> Any:
-        if not self._session:
-            self._session = sessionmaker(
-                bind=self.engine,
-                class_=Session,
-                expire_on_commit=False,
-            )
-
-        return self._session
-
-    async def disconnect(self) -> None:
-        self.engine.dispose()
+    @abstractmethod
+    def engine(self) -> EngineType:
+        pass
 
     async def migrate(
         self,
@@ -67,26 +67,6 @@ class SqlAlchemyConnector(ConnectorInterface):
 
         if self._config.boolean("database.migrations.alembic"):
             await self._run_alembic_migrations()
-
-    @property
-    def engine(self) -> Engine:
-        """
-        Returns the SQLAlchemy engine instance.
-        """
-
-        # TODO: Use config.services.sqlalchemy settings for pool size, echo, etc.
-
-        if not self._engine:
-            self._engine = create_engine(
-                self.url,
-                echo=False,
-                pool_size=5,
-                max_overflow=5,
-                pool_pre_ping=True,
-                future=True,  # lazy connections
-            )
-
-        return self._engine
 
     @property
     def url(self) -> URL:
@@ -115,6 +95,26 @@ class SqlAlchemyConnector(ConnectorInterface):
 
         return self._url
 
+    @property
+    def alembic_config(self):
+        from alembic.config import Config
+
+        alembic_cfg = Config()
+        alembic_cfg.set_main_option(
+            "script_location",
+            "%(here)s/database/migrations",
+        )
+        alembic_cfg.set_main_option(
+            "sqlalchemy.url", self.url.render_as_string(hide_password=False)
+        )
+
+        alembic_cfg.set_main_option(
+            "pyranninc.asyncio",
+            str(self._config.boolean("services.sqlalchemy.asyncio")),
+        )
+
+        return alembic_cfg
+
     async def _run_migrations(
         self, migrations: list[type[MigrationInterface]] | None = None
     ) -> None:
@@ -132,28 +132,57 @@ class SqlAlchemyConnector(ConnectorInterface):
         Run Alembic migrations using the configured database URL.
         """
         from alembic import command
-        from alembic.config import Config
 
-        alembic_cfg = Config()
-        alembic_cfg.set_main_option(
-            "script_location",
-            "%(here)s/database/migrations",
-        )
-        alembic_cfg.set_main_option(
-            "sqlalchemy.url", self.url.render_as_string(hide_password=False)
-        )
-
-        await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
+        await asyncio.to_thread(command.upgrade, self.alembic_config, "head")
         self._logger.info("|- ✅ Applied Alembic migrations")
 
 
-class SqlAlchemyAsyncConnector(SqlAlchemyConnector):
+class SqlAlchemyConnector(AbstractSqlAlchemyConnector[Engine, sessionmaker[Session]]):
+    """
+    Handles synchronous interactions with an SQL Database using SQLAlchemy.
+    """
+
+    @property
+    def connection(self) -> Any:
+        if not self._session:
+            self._session = sessionmaker(
+                bind=self.engine,
+                class_=Session,
+                expire_on_commit=False,
+            )
+
+        return self._session
+
+    async def disconnect(self) -> None:
+        self.engine.dispose()
+
+    @property
+    def engine(self) -> Engine:
+        """
+        Returns the SQLAlchemy engine instance.
+        """
+
+        # TODO: Use config.services.sqlalchemy settings for pool size, echo, etc.
+
+        if not self._engine:
+            self._engine = create_engine(
+                self.url,
+                echo=False,
+                pool_size=5,
+                max_overflow=5,
+                pool_pre_ping=True,
+                future=True,  # lazy connections
+            )
+
+        return self._engine
+
+
+class SqlAlchemyAsyncConnector(
+    AbstractSqlAlchemyConnector[AsyncEngine, async_sessionmaker[AsyncSession]]
+):
     """
     Handles asynchronous interactions with an SQL Database using SQLAlchemy.
     """
-
-    _engine: AsyncEngine | None
-    _session: async_sessionmaker[AsyncSession] | None
 
     @property
     def connection(self) -> Any:
@@ -165,6 +194,9 @@ class SqlAlchemyAsyncConnector(SqlAlchemyConnector):
             )
 
         return self._session
+
+    async def disconnect(self) -> None:
+        await self.engine.dispose()
 
     @property
     def engine(self) -> AsyncEngine:

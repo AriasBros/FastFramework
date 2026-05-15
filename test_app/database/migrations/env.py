@@ -2,7 +2,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -34,10 +34,8 @@ def do_run_migrations(connection: Connection) -> None:
         context.run_migrations()
 
 
-async def run_async_migrations() -> None:
+async def run_async_migrations(config_data: dict[str, str]) -> None:
     """In this scenario we need to create an Engine and associate a connection with the context."""
-
-    config_data = config.get_section(config.config_ini_section, {})
 
     """ TODO: If the URL is not set in the config, we can construct it from the settings.
     if not config_data.get("sqlalchemy.url"):
@@ -65,10 +63,29 @@ async def run_async_migrations() -> None:
     await connectable.dispose()
 
 
-def run_migrations_online() -> None:
+def run_sync_migrations(config_data: dict[str, str]) -> None:
+    connectable = engine_from_config(
+        config_data,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        context.configure(connection=connection, target_metadata=target_metadata)
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+def run_migrations() -> None:
     """Run migrations in 'online' mode."""
 
-    asyncio.run(run_async_migrations())
+    config_data = config.get_section(config.config_ini_section, {})
+
+    if config_data.get("pyranninc.asyncio", "false").lower() == "true":
+        asyncio.run(run_async_migrations(config_data))
+    else:
+        run_sync_migrations(config_data)
 
 
-run_migrations_online()
+run_migrations()

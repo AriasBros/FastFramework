@@ -1,4 +1,4 @@
-from typing import Any, TypeAlias, TypeVar, Union
+from typing import Any, Sequence, TypeAlias, TypeVar, Union
 
 from pydantic import BaseModel
 
@@ -13,8 +13,8 @@ from pyrannic.pagination.meta import PaginationMeta
 ResourceType = TypeVar("ResourceType", covariant=True, bound=ResourceInterface)
 
 DataType: TypeAlias = Union[
-    list[ResourceType],
-    list[SerializableInterface],
+    Sequence[ResourceType],
+    Sequence[SerializableInterface],
     PaginatorInterface[SerializableInterface, PaginationMeta],
 ]
 

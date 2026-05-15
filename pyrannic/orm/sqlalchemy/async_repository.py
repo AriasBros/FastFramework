@@ -5,7 +5,7 @@ from sqlalchemy import CompoundSelect, Delete, Select, delete, select
 
 from pyrannic.container.param_functions import Resolves
 from pyrannic.contracts.database.manager import DatabaseManagerInterface
-from pyrannic.contracts.orm.repository import RepositoryInterface, T
+from pyrannic.contracts.orm.async_repository import RepositoryInterface, T
 
 
 class Repository(RepositoryInterface[T]):
@@ -29,15 +29,15 @@ class Repository(RepositoryInterface[T]):
         self._query = delete(model or self.__model__)
         return self
 
-    def create(self, model: T) -> T:
-        with self._connection() as session:
+    async def create(self, model: T) -> T:
+        async with self._connection() as session:
             try:
                 session.add(model)
-                session.commit()
-                session.refresh(model)
+                await session.commit()
+                await session.refresh(model)
                 return model
             except Exception as e:
-                session.rollback()
+                await session.rollback()
                 self._logger.exception(f"Rolling Back. Error inserting object: {e}")
                 raise
 
@@ -49,30 +49,30 @@ class Repository(RepositoryInterface[T]):
     async def destroy(self, model: T | None = None) -> None:
         pass
 
-    def remove(self, model: CanBeSoftDeletedInterface) -> T:
+    async def remove(self, model: CanBeSoftDeletedInterface) -> T:
         pass
     
     """
 
-    def first(self) -> T | None:
+    async def first(self) -> T | None:
         assert self._query is not None
 
         model = None
 
-        with self._connection() as session:
-            model = (session.scalars(self._query)).first()
+        async with self._connection() as session:
+            model = (await session.scalars(self._query)).first()
 
         self._reset_query()
 
         return model
 
-    def get(self) -> list[T]:
+    async def get(self) -> list[T]:
         assert self._query is not None
 
         models = None
 
-        with self._connection() as session:
-            models = (session.scalars(self._query)).all()
+        async with self._connection() as session:
+            models = (await session.scalars(self._query)).all()
 
         self._reset_query()
 
