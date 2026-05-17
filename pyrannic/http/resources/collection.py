@@ -34,8 +34,6 @@ class _PydanticCollection(BaseModel, _ResourceCollection[ResourceType]):
         with_relationships: bool | list[str] = True,
         **kwargs: Any,
     ):
-        print(get_generic_type(self))
-
         if not hasattr(self, "__resource_cls__"):
             self.__resource_cls__ = get_generic_type(self)
             print(self.__resource_cls__)
