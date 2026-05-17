@@ -2,11 +2,11 @@ from typing import Any, Optional
 
 from pydantic import Field
 
-from pyrannic import Resource, ResourceCollection
-from pyrannic.http.resources.collection import DataType
+from pyrannic import Resource, ResourceCollection, PaginationMeta
+from pyrannic.http.resources import ItemsType, HasTimestamps
 
 
-class Hero(Resource):
+class Hero(Resource, HasTimestamps):
     id: str = Field(coerce_numbers_to_str=True)
     name: str = Field(
         description="The name of the hero, e.g., 'Superman', 'Batman'.",
@@ -20,8 +20,8 @@ class Hero(Resource):
 
 class HeroesCollection(ResourceCollection[Hero]):
     __resource_cls__ = Hero
-    # meta: PaginationMeta
+    meta: PaginationMeta
 
-    # NOTE: Needed to avoid Pydantic's validation error when initializing with a list of resources.
-    def __init__(self, items: DataType[Hero], /, **kwargs: Any) -> None:
+    # NOTE: Needed to avoid static typing issues with the IDE.
+    def __init__(self, items: ItemsType[Hero], /, **kwargs: Any) -> None:
         super().__init__(items, **kwargs)

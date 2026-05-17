@@ -1,34 +1,17 @@
-from logging import Logger
-from typing import Annotated, Any, Self
+import math
+from typing import Any
 
-from sqlalchemy import CompoundSelect, Delete, Select, delete, select
+from sqlalchemy import func
 
-from pyrannic.container.param_functions import Resolves
-from pyrannic.contracts.database.manager import DatabaseManagerInterface
 from pyrannic.contracts.orm.async_repository import RepositoryInterface, T
+from pyrannic.contracts.orm.traits.can_be_soft_deleted import CanBeSoftDeletedInterface
+from pyrannic.contracts.pagination.paginator import PaginatorInterface
+from pyrannic.orm.sqlalchemy.abstract_repository import AbstractRepository
+from pyrannic.pagination.paginator import Paginator
+from pyrannic.support.datetime import get_current_utc_datetime
 
 
-class Repository(RepositoryInterface[T]):
-    __model__: type[T]
-    _query: Select[Any] | CompoundSelect[Any] | Delete | None = None
-    _is_ordering: bool = False
-
-    def __init__(
-        self,
-        manager: Annotated[DatabaseManagerInterface, Resolves()],
-        logger: Annotated[Logger, Resolves()],
-    ):
-        self._connection = manager.connection
-        self._logger = logger
-
-    def select(self, model: type[T] | None = None) -> Self:
-        self._query = select(model or self.__model__)
-        return self
-
-    def delete(self, model: type[T] | None = None) -> Self:
-        self._query = delete(model or self.__model__)
-        return self
-
+class AsyncRepository(AbstractRepository[T], RepositoryInterface[T]):
     async def create(self, model: T) -> T:
         async with self._connection() as session:
             try:
@@ -41,18 +24,47 @@ class Repository(RepositoryInterface[T]):
                 self._logger.exception(f"Rolling Back. Error inserting object: {e}")
                 raise
 
-    """
-
     async def update(self, model: T) -> T:
-        pass
+        async with self._connection() as session:
+            try:
+                await session.merge(model)
+                await session.commit()
+                return model
+            except Exception as e:
+                await session.rollback()
+                self._logger.exception(f"Rolling Back. Error updating model: {e}")
+                raise
 
     async def destroy(self, model: T | None = None) -> None:
-        pass
+        self._prepare_destroy_model_if_needed(model)
 
-    async def remove(self, model: CanBeSoftDeletedInterface) -> T:
-        pass
-    
-    """
+        assert self._query is not None
+
+        async with self._connection() as session:
+            try:
+                await session.execute(self._query)
+                await session.commit()
+            except Exception as e:
+                await session.rollback()
+                raise e
+            finally:
+                self._reset_query()
+
+    async def remove(self, model: T) -> T:
+        return (await self.update(model)) if self._remove_model(model) else model
+
+    async def count(self, reset_query: bool = True) -> int:
+        assert self._query is not None
+
+        count = 0
+
+        async with self._connection() as session:
+            count = (await session.execute(self._get_count_query)).scalar()
+
+        if reset_query:
+            self._reset_query()
+
+        return count
 
     async def first(self) -> T | None:
         assert self._query is not None
@@ -78,6 +90,21 @@ class Repository(RepositoryInterface[T]):
 
         return models or []
 
-    def _reset_query(self) -> None:
-        self._query = None
-        self._is_ordering = False
+    async def find_by_id(self, value: Any) -> T | None:
+        return await (
+            self.select().where(self.__model__.primary_key_column() == value).first()
+        )
+
+    async def paginate(
+        self,
+        page: int = 1,
+        per_page: int | None = None,
+        **kwargs: Any,
+    ) -> PaginatorInterface[T, Any]:
+        assert self._query is not None
+
+        total = await self.count(reset_query=False)
+        page, per_page, last_page = self._apply_pagination(total, page, per_page)
+        items = await self.get()
+
+        return Paginator(items, page, per_page, total, last_page, **kwargs)

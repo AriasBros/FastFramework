@@ -4,12 +4,16 @@ from typing import Any
 from sqlalchemy import DateTime, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
-from pyrannic.contracts.orm.model import ModelInterface
+from pyrannic.contracts.orm.traits.has_timestamps import (
+    HasTimestampInterface,
+    HasTimestampsInterface,
+)
 from pyrannic.support.datetime import get_current_utc_datetime
 
 
-class HasTimestamp(ModelInterface):
-    __created_at_column_name__ = "created_at"
+class HasTimestamp(HasTimestampInterface):
+    def set_created_at(self, created_at: datetime | None) -> None:
+        self.created_at = created_at
 
     @declared_attr
     def created_at(self) -> Mapped[datetime]:
@@ -21,11 +25,14 @@ class HasTimestamp(ModelInterface):
 
     def __pre_init__(self, **kwargs: Any):
         super().__pre_init__(**kwargs)
-        self.created_at = kwargs.get("created_at") or get_current_utc_datetime()
+        self.created_at = (
+            kwargs.get(self.__created_at_column_name__) or get_current_utc_datetime()
+        )
 
 
-class HasTimestamps(HasTimestamp):
-    __updated_at_column_name__ = "updated_at"
+class HasTimestamps(HasTimestamp, HasTimestampsInterface):
+    def set_updated_at(self, updated_at: datetime | None) -> None:
+        self.updated_at = updated_at
 
     @declared_attr
     def updated_at(self) -> Mapped[datetime]:
@@ -38,4 +45,4 @@ class HasTimestamps(HasTimestamp):
 
     def __pre_init__(self, **kwargs: Any):
         super().__pre_init__(**kwargs)
-        self.updated_at = kwargs.get("updated_at") or self.created_at
+        self.updated_at = kwargs.get(self.__updated_at_column_name__) or self.created_at

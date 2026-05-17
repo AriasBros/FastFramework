@@ -1,8 +1,7 @@
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from pyrannic.orm.sqlalchemy.model import Model
-from pyrannic.orm.sqlalchemy.traits.has_timestamps import HasTimestamps
+from pyrannic.orm.sqlalchemy import Model, HasTimestamps
 
 
 class Hero(Model, HasTimestamps):

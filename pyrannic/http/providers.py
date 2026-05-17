@@ -8,11 +8,20 @@ from pyrannic.container.utils import (
     get_modules,
     import_modules,
 )
+from pyrannic.http.exceptions.exception import handle_exception
+from pyrannic.http.exceptions.resource_not_found import (
+    ResourceNotFoundException,
+    handle_resource_not_found_exception,
+)
+from pyrannic.http.exceptions.unprocessable_entity import (
+    UnprocessableEntityException,
+    handle_unprocessable_entity_exception,
+)
 
 
 class RoutersServiceProvider(ServiceProvider):
     def register(self):
-        modules = get_modules("app/http/controllers")
+        modules = get_modules("app/http/routers")
         routers: list[APIRouter] = get_attrs(modules, "router")
 
         for router in routers:
@@ -36,3 +45,14 @@ class MiddlewaresServiceProvider(ServiceProvider):
                     lambda name: not name.startswith("_"),
                 ):
                     self.app.middleware("http")(middleware)
+
+
+class ExceptionHandlersProvider(ServiceProvider):
+    def register(self):
+        self.app.add_exception_handler(
+            UnprocessableEntityException, handle_unprocessable_entity_exception
+        )
+        self.app.add_exception_handler(
+            ResourceNotFoundException, handle_resource_not_found_exception
+        )
+        self.app.add_exception_handler(Exception, handle_exception)

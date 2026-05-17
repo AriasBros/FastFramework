@@ -1,7 +1,8 @@
 from abc import abstractmethod
-from typing import Generic, TypeVar, get_args
+from typing import Generic, TypeVar
 
 from pyrannic.bootstrap.service_provider import ServiceProvider
+from pyrannic.support.reflection import get_generic_type
 
 ServiceType = TypeVar("ServiceType")
 
@@ -13,7 +14,7 @@ class InstanceServiceProvider(ServiceProvider, Generic[ServiceType]):
 
     @property
     def abstract(self) -> str | type:
-        return get_args(type(self).__orig_bases__[0])[0]  # type: ignore
+        return get_generic_type(self)
 
     @property
     def aliases(self) -> list[str | type] | None:

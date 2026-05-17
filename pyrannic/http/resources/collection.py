@@ -1,4 +1,4 @@
-from typing import Any, Sequence, TypeAlias, TypeVar, Union
+from typing import Any, Generic, Sequence, TypeAlias, TypeVar, Union
 
 from pydantic import BaseModel
 
@@ -9,17 +9,18 @@ from pyrannic.contracts.http.resources.resource import ResourceInterface
 from pyrannic.contracts.pagination.paginator import PaginatorInterface
 from pyrannic.contracts.support.serializable import SerializableInterface
 from pyrannic.pagination.meta import PaginationMeta
+from pyrannic.support.reflection import get_generic_type
 
 ResourceType = TypeVar("ResourceType", covariant=True, bound=ResourceInterface)
 
-DataType: TypeAlias = Union[
+ItemsType: TypeAlias = Union[
     Sequence[ResourceType],
     Sequence[SerializableInterface],
     PaginatorInterface[SerializableInterface, PaginationMeta],
 ]
 
 
-class _ResourceCollection(ResourceCollectionInterface[ResourceType]):
+class _ResourceCollection(Generic[ResourceType], ResourceCollectionInterface):
     __resource_cls__: type[ResourceType]
     __meta_cls__: type[PaginationMeta] = PaginationMeta
 
@@ -29,10 +30,16 @@ class _ResourceCollection(ResourceCollectionInterface[ResourceType]):
 class _PydanticCollection(BaseModel, _ResourceCollection[ResourceType]):
     def __init__(
         self,
-        data: DataType[ResourceType],
+        data: ItemsType[ResourceType],
         with_relationships: bool | list[str] = True,
         **kwargs: Any,
     ):
+        print(get_generic_type(self))
+
+        if not hasattr(self, "__resource_cls__"):
+            self.__resource_cls__ = get_generic_type(self)
+            print(self.__resource_cls__)
+
         assert self.__resource_cls__ is not None, (
             "Resource class must be set before initializing ResourceCollection"
         )
@@ -58,6 +65,6 @@ class _PydanticCollection(BaseModel, _ResourceCollection[ResourceType]):
 
 
 class ResourceCollection(_PydanticCollection[ResourceType]):
-    def __init__(self, items: DataType[ResourceType], /, **kwargs: Any) -> None:
+    def __init__(self, items: ItemsType[ResourceType], /, **kwargs: Any) -> None:
         kwargs["data"] = items
         super().__init__(**kwargs)
