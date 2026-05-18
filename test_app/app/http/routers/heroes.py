@@ -3,14 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from pyrannic import ResourceNotFoundException
-
-from test_app.app.http.controllers.heroes import HeroesController
 from test_app.app.http.resources.hero import Hero, HeroesCollection
 from test_app.app.models.hero import Hero as HeroModel
 from test_app.app.repositories.heroes import HeroesRepository
 
 router = APIRouter(tags=["Heroes"])
-controller = HeroesController()
 
 
 @router.get(
@@ -33,7 +30,7 @@ def show(
     hero_id: str,
     repository: Annotated[HeroesRepository, Depends()],
 ) -> Hero:
-    hero = repository.select().filter_by(id=hero_id).first()
+    hero = repository.find_by_id(hero_id)
 
     if not hero:
         raise ResourceNotFoundException(hero_id)
@@ -56,7 +53,7 @@ def destroy(
     if not hero:
         raise ResourceNotFoundException(hero_id)
 
-    repository.destroy(hero)
+    repository.remove(hero)
 
 
 @router.post(

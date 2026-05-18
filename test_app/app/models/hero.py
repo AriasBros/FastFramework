@@ -1,10 +1,10 @@
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from pyrannic.orm.sqlalchemy import Model, HasTimestamps
+from pyrannic.orm.sqlalchemy import HasTimestamps, Model, SoftDeletes
 
 
-class Hero(Model, HasTimestamps):
+class Hero(Model, HasTimestamps, SoftDeletes):
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,

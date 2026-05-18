@@ -3,13 +3,13 @@ from pydantic import Field
 from pyrannic import Configuration
 
 
-class _DatabaseConfig(Configuration):
+class DBConfig(Configuration):
     @property
     def env_prefix(self) -> str:
         return "DB_"
 
 
-class SqliteConfig(_DatabaseConfig):
+class SqliteConfig(DBConfig):
     driver: str = "sqlite"
     """The database driver to use."""
 
@@ -19,17 +19,17 @@ class SqliteConfig(_DatabaseConfig):
     """File path for SQLite database."""
 
 
-class ConnectionsConfig(_DatabaseConfig):
+class ConnectionsConfig(DBConfig):
     sqlite: SqliteConfig = Field(default=SqliteConfig())
     """Configuration for SQLite database connection."""
 
 
-class MigrationsConfig(_DatabaseConfig):
+class MigrationsConfig(DBConfig):
     alembic: bool = Field(default=True)
     """Whether to run Alembic migrations after running the provided migration classes."""
 
 
-class DatabaseConfig(_DatabaseConfig):
+class DatabaseConfig(DBConfig):
     connections: ConnectionsConfig = Field(default=ConnectionsConfig())
     """Configuration for database connections."""
 

@@ -1,60 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Self, TypeVar
+from typing import Any, Generic
 
-from pyrannic.contracts.orm.model import ModelInterface
-from pyrannic.contracts.orm.traits.can_be_soft_deleted import CanBeSoftDeletedInterface
+from pyrannic.contracts.orm.query_builder import T
 from pyrannic.contracts.pagination.paginator import PaginatorInterface
 
-T = TypeVar("T", bound=ModelInterface)
 
-
-class BaseRepositoryInterface(ABC, Generic[T]):
-    @abstractmethod
-    def select(self, model: type[T] | None = None) -> Self:
-        """Initialize a select query for the model."""
-        pass
-
-    @abstractmethod
-    def delete(self, model: type[T] | None = None) -> Self:
-        """Initialize a delete query for the model."""
-        pass
-
-    @abstractmethod
-    def order_by(self, *attributes: Any) -> Self:
-        """Set the order for the current query."""
-        pass
-
-    @abstractmethod
-    def limit(self, limit: int | None) -> Self:
-        """Set the limit for the current query."""
-        pass
-
-    @abstractmethod
-    def offset(self, offset: int | None) -> Self:
-        """Set the offset for the current query."""
-        pass
-
-    @abstractmethod
-    def where(self, *where_clause: Any) -> Self:
-        """Add where conditions to the current query."""
-        pass
-
-    @abstractmethod
-    def filter(self, *filters: Any | None) -> Self:
-        """Add filtering conditions to the current query."""
-        pass
-
-    @abstractmethod
-    def filter_by(self, **kwargs: Any) -> Self:
-        """Add filtering conditions to the current query."""
-        pass
-
-    @abstractmethod
-    def group_by(self, *attributes: Any) -> Self:
-        pass
-
-
-class RepositoryInterface(BaseRepositoryInterface[T]):
+class RepositoryInterface(ABC, Generic[T]):
     @abstractmethod
     def create(self, model: T) -> T:
         """Insert a new record into the database."""
@@ -74,12 +25,20 @@ class RepositoryInterface(BaseRepositoryInterface[T]):
     def remove(self, model: T) -> T:
         """
         Soft delete the models by setting the deleted_at timestamp.
-        The model must implement the CanBeSoftDeletedInterface mixin for this to work.
+        The model must implement the SoftDeletesInterface mixin for this to work.
         """
         pass
 
     @abstractmethod
-    def count(self, reset_query: bool = True) -> int:
+    def restore(self, model: T) -> T:
+        """
+        Restore a soft-deleted model by clearing the deleted_at timestamp.
+        The model must implement the SoftDeletesInterface mixin for this to work.
+        """
+        pass
+
+    @abstractmethod
+    def count(self) -> int:
         """Count the number of records matching the current query."""
         pass
 

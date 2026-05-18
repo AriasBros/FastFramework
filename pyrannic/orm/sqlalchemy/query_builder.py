@@ -1,7 +1,17 @@
-from logging import Logger
 import math
-from typing import Annotated, Any, Generic, Self
+from datetime import datetime
+from logging import Logger
+from typing import Annotated, Any, Self
 
+from pyrannic.container.param_functions import Resolves
+from pyrannic.contracts.database.manager import DatabaseManagerInterface
+from pyrannic.contracts.orm.mixins.soft_deletes import SoftDeletesInterface
+from pyrannic.contracts.orm.query_builder import QueryBuilderInterface
+from pyrannic.contracts.orm.repository import T
+from pyrannic.contracts.orm.scope import ScopeInterface
+from pyrannic.orm.sqlalchemy.scopes.soft_deleting_scope import SoftDeletingScope
+from pyrannic.support.datetime import get_current_utc_datetime
+from pyrannic.support.reflection import get_generic_type
 from sqlalchemy import (
     ColumnExpressionArgument,
     CompoundSelect,
@@ -14,16 +24,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import InstrumentedAttribute
 
-from pyrannic.container.param_functions import Resolves
-from pyrannic.contracts.database.manager import DatabaseManagerInterface
-from pyrannic.contracts.orm.repository import T
-from pyrannic.contracts.orm.traits.can_be_soft_deleted import CanBeSoftDeletedInterface
-from pyrannic.support.datetime import get_current_utc_datetime
-from pyrannic.support.reflection import get_generic_type
 
-
-class AbstractRepository(Generic[T]):
+class QueryBuilder(QueryBuilderInterface[T]):
     __model__: type[T]
+    __scopes__: list[ScopeInterface[T]] = []
+
+    _scopes: list[ScopeInterface[T]] = []
     _query: Select[Any] | Delete | CompoundSelect[Any] | None = None
     _is_ordering: bool = False
 
@@ -38,12 +44,19 @@ class AbstractRepository(Generic[T]):
         self._connection = manager.connection
         self._logger = logger
 
+        self._scopes.append(SoftDeletingScope())
+        self._scopes.extend(self.__scopes__)
+
+    @property
+    def model(self) -> type[T]:
+        return self.__model__
+
     def select(self, model: type[T] | None = None) -> Self:
-        self._query = select(model or self.__model__)
+        self._query = select(model or self.model)
         return self
 
     def delete(self, model: type[T] | None = None) -> Self:
-        self._query = delete(model or self.__model__)
+        self._query = delete(model or self.model)
         return self
 
     def order_by(
@@ -81,6 +94,9 @@ class AbstractRepository(Generic[T]):
             self._query = self._query.where(*where_clause)
 
         return self
+
+    def where_none(self, column_name: str) -> Self:
+        return self.filter_by(**{column_name: None})
 
     def filter(self, *filters: ColumnExpressionArgument[Any] | None) -> Self:
         assert self._query is not None
@@ -139,6 +155,16 @@ class AbstractRepository(Generic[T]):
 
         return last_page
 
+    def _before_query(self) -> None:
+        assert self._query is not None
+        self._apply_scopes()
+
+    def _apply_scopes(self) -> Self:
+        for scope in self._scopes:
+            scope.apply(self)
+
+        return self
+
     def _apply_pagination(
         self,
         total: int = 0,
@@ -146,7 +172,7 @@ class AbstractRepository(Generic[T]):
         per_page: int | None = None,
     ) -> tuple[int, int, int]:
         if not self._is_ordering:
-            self.order_by(self.__model__.primary_key_column().asc())
+            self.order_by(self.model.primary_key_column().asc())
 
         if per_page is None or per_page <= 0:
             per_page = max(total, 1)
@@ -166,12 +192,22 @@ class AbstractRepository(Generic[T]):
     def _prepare_destroy_model_if_needed(self, model: T | None) -> None:
         if model is not None:
             self.delete().where(
-                self.__model__.primary_key_column() == model.primary_key_value
+                self.model.primary_key_column() == model.primary_key_value
             )
 
-    def _remove_model(self, model: T) -> bool:
-        if isinstance(model, CanBeSoftDeletedInterface):
-            model.set_deleted_at(get_current_utc_datetime())
+    def _prepare_soft_deletes_model(
+        self,
+        model: T,
+        deleted_at: datetime | None,
+    ) -> bool:
+        if isinstance(model, SoftDeletesInterface):
+            model.set_deleted_at(deleted_at)
             return True
 
         return False
+
+    def _remove_model(self, model: T) -> bool:
+        return self._prepare_soft_deletes_model(model, get_current_utc_datetime())
+
+    def _restore_model(self, model: T) -> bool:
+        return self._prepare_soft_deletes_model(model, None)

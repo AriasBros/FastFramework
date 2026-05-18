@@ -2,11 +2,11 @@ from typing import Any, Optional
 
 from pydantic import Field
 
-from pyrannic import Resource, ResourceCollection, PaginationMeta
-from pyrannic.http.resources import ItemsType, HasTimestamps
+from pyrannic import PaginationMeta, Resource, ResourceCollection
+from pyrannic.http.resources import HasTimestamps, ItemsType, SoftDeletes
 
 
-class Hero(Resource, HasTimestamps):
+class Hero(Resource, HasTimestamps, SoftDeletes):
     id: str = Field(coerce_numbers_to_str=True)
     name: str = Field(
         description="The name of the hero, e.g., 'Superman', 'Batman'.",

@@ -1,17 +1,12 @@
-import math
 from typing import Any
 
-from sqlalchemy import func
-
 from pyrannic.contracts.orm.async_repository import RepositoryInterface, T
-from pyrannic.contracts.orm.traits.can_be_soft_deleted import CanBeSoftDeletedInterface
 from pyrannic.contracts.pagination.paginator import PaginatorInterface
-from pyrannic.orm.sqlalchemy.abstract_repository import AbstractRepository
+from pyrannic.orm.sqlalchemy.query_builder import QueryBuilder
 from pyrannic.pagination.paginator import Paginator
-from pyrannic.support.datetime import get_current_utc_datetime
 
 
-class AsyncRepository(AbstractRepository[T], RepositoryInterface[T]):
+class AsyncRepository(QueryBuilder[T], RepositoryInterface[T]):
     async def create(self, model: T) -> T:
         async with self._connection() as session:
             try:
@@ -52,6 +47,9 @@ class AsyncRepository(AbstractRepository[T], RepositoryInterface[T]):
 
     async def remove(self, model: T) -> T:
         return (await self.update(model)) if self._remove_model(model) else model
+
+    async def restore(self, model: T) -> T:
+        return (await self.update(model)) if self._restore_model(model) else model
 
     async def count(self, reset_query: bool = True) -> int:
         assert self._query is not None

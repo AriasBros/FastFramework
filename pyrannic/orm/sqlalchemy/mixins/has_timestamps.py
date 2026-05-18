@@ -4,7 +4,7 @@ from typing import Any
 from sqlalchemy import DateTime, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
-from pyrannic.contracts.orm.traits.has_timestamps import (
+from pyrannic.contracts.orm.mixins.has_timestamps import (
     HasTimestampInterface,
     HasTimestampsInterface,
 )
@@ -12,6 +12,8 @@ from pyrannic.support.datetime import get_current_utc_datetime
 
 
 class HasTimestamp(HasTimestampInterface):
+    __created_at_column_name__ = "created_at"
+
     def set_created_at(self, created_at: datetime | None) -> None:
         self.created_at = created_at
 
@@ -31,6 +33,8 @@ class HasTimestamp(HasTimestampInterface):
 
 
 class HasTimestamps(HasTimestamp, HasTimestampsInterface):
+    __updated_at_column_name__ = "updated_at"
+
     def set_updated_at(self, updated_at: datetime | None) -> None:
         self.updated_at = updated_at
 

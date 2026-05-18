@@ -1,11 +1,11 @@
-from abc import abstractmethod
-from typing import Any
+from abc import ABC, abstractmethod
+from typing import Any, Generic
 
-from pyrannic.contracts.orm.repository import BaseRepositoryInterface, T
+from pyrannic.contracts.orm.query_builder import T
 from pyrannic.contracts.pagination.paginator import PaginatorInterface
 
 
-class RepositoryInterface(BaseRepositoryInterface[T]):
+class RepositoryInterface(ABC, Generic[T]):
     @abstractmethod
     async def create(self, model: T) -> T:
         """Insert a new record into the database."""
@@ -25,12 +25,20 @@ class RepositoryInterface(BaseRepositoryInterface[T]):
     async def remove(self, model: T) -> T:
         """
         Soft delete the models by setting the deleted_at timestamp.
-        The model must implement the CanBeSoftDeletedInterface mixin for this to work.
+        The model must implement the SoftDeletesInterface mixin for this to work.
         """
         pass
 
     @abstractmethod
-    async def count(self, reset_query: bool = True) -> int:
+    async def restore(self, model: T) -> T:
+        """
+        Restore a soft-deleted model by clearing the deleted_at timestamp.
+        The model must implement the SoftDeletesInterface mixin for this to work.
+        """
+        pass
+
+    @abstractmethod
+    async def count(self) -> int:
         """Count the number of records matching the current query."""
         pass
 
