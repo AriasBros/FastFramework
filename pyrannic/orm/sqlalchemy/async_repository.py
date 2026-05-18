@@ -32,8 +32,7 @@ class AsyncRepository(QueryBuilder[T], RepositoryInterface[T]):
 
     async def destroy(self, model: T | None = None) -> None:
         self._prepare_destroy_model_if_needed(model)
-
-        assert self._query is not None
+        self._before_query()
 
         async with self._connection() as session:
             try:
@@ -51,21 +50,12 @@ class AsyncRepository(QueryBuilder[T], RepositoryInterface[T]):
     async def restore(self, model: T) -> T:
         return (await self.update(model)) if self._restore_model(model) else model
 
-    async def count(self, reset_query: bool = True) -> int:
-        assert self._query is not None
-
-        count = 0
-
-        async with self._connection() as session:
-            count = (await session.execute(self._get_count_query)).scalar()
-
-        if reset_query:
-            self._reset_query()
-
-        return count
+    async def count(self) -> int:
+        self._before_query()
+        return await self._count(reset_query=False)
 
     async def first(self) -> T | None:
-        assert self._query is not None
+        self._before_query()
 
         model = None
 
@@ -76,19 +66,14 @@ class AsyncRepository(QueryBuilder[T], RepositoryInterface[T]):
 
         return model
 
+    async def all(self) -> list[T]:
+        return await self.get()
+
     async def get(self) -> list[T]:
-        assert self._query is not None
+        self._before_query()
+        return await self._get()
 
-        models = None
-
-        async with self._connection() as session:
-            models = (await session.scalars(self._query)).all()
-
-        self._reset_query()
-
-        return models or []
-
-    async def find_by_id(self, value: Any) -> T | None:
+    async def find(self, value: Any) -> T | None:
         return await (
             self.select().where(self.__model__.primary_key_column() == value).first()
         )
@@ -99,10 +84,32 @@ class AsyncRepository(QueryBuilder[T], RepositoryInterface[T]):
         per_page: int | None = None,
         **kwargs: Any,
     ) -> PaginatorInterface[T, Any]:
-        assert self._query is not None
+        self._prepare_query()
+        self._before_query()
 
-        total = await self.count(reset_query=False)
+        total = await self._count(reset_query=False)
         page, per_page, last_page = self._apply_pagination(total, page, per_page)
-        items = await self.get()
+        items = await self._get()
 
         return Paginator(items, page, per_page, total, last_page, **kwargs)
+
+    async def _get(self) -> list[T]:
+        models = None
+
+        async with self._connection() as session:
+            models = (await session.scalars(self._query)).all()
+
+        self._reset_query()
+
+        return models or []
+
+    async def _count(self, reset_query: bool = True) -> int:
+        count = 0
+
+        async with self._connection() as session:
+            count = (await session.execute(self._get_count_query)).scalar()
+
+        if reset_query:
+            self._reset_query()
+
+        return count

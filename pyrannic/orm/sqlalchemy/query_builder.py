@@ -18,6 +18,7 @@ from sqlalchemy import (
     Delete,
     Select,
     UnaryExpression,
+    column,
     delete,
     func,
     select,
@@ -27,11 +28,12 @@ from sqlalchemy.orm import InstrumentedAttribute
 
 class QueryBuilder(QueryBuilderInterface[T]):
     __model__: type[T]
-    __scopes__: list[ScopeInterface[T]] = []
+    __scopes__: list[ScopeInterface[T]]
 
-    _scopes: list[ScopeInterface[T]] = []
+    _scopes: list[ScopeInterface[T]]
     _query: Select[Any] | Delete | CompoundSelect[Any] | None = None
     _is_ordering: bool = False
+    _soft_deleting_scope: SoftDeletingScope[T]
 
     def __init__(
         self,
@@ -41,10 +43,16 @@ class QueryBuilder(QueryBuilderInterface[T]):
         if not hasattr(self, "__model__"):
             self.__model__ = get_generic_type(self)
 
+        if not hasattr(self, "__scopes__"):
+            self.__scopes__ = []
+
         self._connection = manager.connection
         self._logger = logger
 
-        self._scopes.append(SoftDeletingScope())
+        self._soft_deleting_scope = SoftDeletingScope()
+        self._scopes = []
+
+        self._scopes.append(self._soft_deleting_scope)
         self._scopes.extend(self.__scopes__)
 
     @property
@@ -63,7 +71,7 @@ class QueryBuilder(QueryBuilderInterface[T]):
         self,
         *attributes: str | InstrumentedAttribute[Any] | UnaryExpression[Any],
     ) -> Self:
-        assert self._query is not None
+        self._prepare_query()
 
         if isinstance(self._query, (Select, CompoundSelect)):
             self._is_ordering = True
@@ -72,7 +80,7 @@ class QueryBuilder(QueryBuilderInterface[T]):
         return self
 
     def limit(self, limit: int | None) -> Self:
-        assert self._query is not None
+        self._prepare_query()
 
         if limit is not None and limit > 0 and isinstance(self._query, Select):
             self._query = self._query.limit(limit)
@@ -80,7 +88,7 @@ class QueryBuilder(QueryBuilderInterface[T]):
         return self
 
     def offset(self, offset: int | None) -> Self:
-        assert self._query is not None
+        self._prepare_query()
 
         if offset is not None and offset > 0 and isinstance(self._query, Select):
             self._query = self._query.offset(offset)
@@ -88,7 +96,7 @@ class QueryBuilder(QueryBuilderInterface[T]):
         return self
 
     def where(self, *where_clause: ColumnExpressionArgument[Any]) -> Self:
-        assert self._query is not None
+        self._prepare_query()
 
         if isinstance(self._query, (Select, Delete)):
             self._query = self._query.where(*where_clause)
@@ -96,10 +104,13 @@ class QueryBuilder(QueryBuilderInterface[T]):
         return self
 
     def where_none(self, column_name: str) -> Self:
-        return self.filter_by(**{column_name: None})
+        return self.where(column(column_name).is_(None))
+
+    def where_not_none(self, column_name: str) -> Self:
+        return self.where(column(column_name).isnot(None))
 
     def filter(self, *filters: ColumnExpressionArgument[Any] | None) -> Self:
-        assert self._query is not None
+        self._prepare_query()
 
         if isinstance(self._query, (Select, Delete)):
             filters = tuple(v for v in filters if v is not None)
@@ -108,7 +119,7 @@ class QueryBuilder(QueryBuilderInterface[T]):
         return self
 
     def filter_by(self, **kwargs: Any) -> Self:
-        assert self._query is not None
+        self._prepare_query()
 
         if isinstance(self._query, (Select, Delete)):
             self._query = self._query.filter_by(**kwargs)
@@ -119,14 +130,30 @@ class QueryBuilder(QueryBuilderInterface[T]):
         self,
         *attributes: str | InstrumentedAttribute[Any] | UnaryExpression[Any],
     ) -> Self:
-        assert self._query is not None
+        self._prepare_query()
 
         if isinstance(self._query, (Select, CompoundSelect)):
             self._query = self._query.group_by(*attributes)
 
         return self
 
+    def with_removed(self) -> Self:
+        if self._supports_soft_deletion():
+            self._soft_deleting_scope.set_with_removed()
+
+        return self
+
+    def only_removed(self) -> Self:
+        if self._supports_soft_deletion():
+            self._soft_deleting_scope.set_only_removed()
+
+        return self
+
+    def _supports_soft_deletion(self) -> bool:
+        return issubclass(self.model, SoftDeletesInterface)
+
     def _reset_query(self) -> None:
+        self._soft_deleting_scope.reset()
         self._query = None
         self._is_ordering = False
 
@@ -154,6 +181,10 @@ class QueryBuilder(QueryBuilderInterface[T]):
             return 1
 
         return last_page
+
+    def _prepare_query(self) -> None:
+        if self._query is None:
+            self.select()
 
     def _before_query(self) -> None:
         assert self._query is not None

@@ -48,12 +48,17 @@ class RepositoryInterface(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def get(self) -> list[T]:
-        """Retrieve all records matching the current query."""
+    def all(self) -> list[T]:
+        """Retrieve all records matching the current query. Alias for get()"""
         pass
 
     @abstractmethod
-    def find_by_id(self, value: Any) -> T | None:
+    def get(self) -> list[T]:
+        """Retrieve all records matching the current query. Alias for all()"""
+        pass
+
+    @abstractmethod
+    def find(self, value: Any) -> T | None:
         """Find a record by its primary key."""
         pass
 

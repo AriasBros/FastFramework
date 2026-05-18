@@ -49,6 +49,11 @@ class QueryBuilderInterface(ABC, Generic[T]):
         pass
 
     @abstractmethod
+    def where_not_none(self, column_name: str) -> Self:
+        """Add a where condition to check if the column is not None."""
+        pass
+
+    @abstractmethod
     def filter(self, *filters: Any | None) -> Self:
         """Add filtering conditions to the current query."""
         pass
@@ -61,4 +66,14 @@ class QueryBuilderInterface(ABC, Generic[T]):
     @abstractmethod
     def group_by(self, *attributes: Any) -> Self:
         """Add group by conditions to the current query."""
+        pass
+
+    @abstractmethod
+    def with_removed(self) -> Self:
+        """Include removed records in the query results."""
+        pass
+
+    @abstractmethod
+    def only_removed(self) -> Self:
+        """Include only removed records in the query results."""
         pass

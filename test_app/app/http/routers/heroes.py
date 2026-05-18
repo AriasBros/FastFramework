@@ -18,7 +18,7 @@ router = APIRouter(tags=["Heroes"])
 def index(
     repository: Annotated[HeroesRepository, Depends()],
 ) -> HeroesCollection:
-    return HeroesCollection(repository.select().paginate())
+    return HeroesCollection(repository.paginate())
 
 
 @router.get(
@@ -30,7 +30,7 @@ def show(
     hero_id: str,
     repository: Annotated[HeroesRepository, Depends()],
 ) -> Hero:
-    hero = repository.find_by_id(hero_id)
+    hero = repository.find(hero_id)
 
     if not hero:
         raise ResourceNotFoundException(hero_id)
@@ -48,12 +48,29 @@ def destroy(
     hero_id: str,
     repository: Annotated[HeroesRepository, Depends()],
 ) -> None:
-    hero = repository.find_by_id(hero_id)
+    hero = repository.find(hero_id)
 
     if not hero:
         raise ResourceNotFoundException(hero_id)
 
     repository.remove(hero)
+
+
+@router.patch(
+    "/heroes/{hero_id}/restore",
+    summary="Restore Hero Endpoint",
+    description="Endpoint to restore a specific hero by ID.",
+)
+def restore(
+    hero_id: str,
+    repository: Annotated[HeroesRepository, Depends()],
+) -> Hero:
+    hero = repository.with_removed().find(hero_id)
+
+    if not hero:
+        raise ResourceNotFoundException(hero_id)
+
+    return Hero.from_model(repository.restore(hero))
 
 
 @router.post(

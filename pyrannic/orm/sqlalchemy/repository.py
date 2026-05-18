@@ -32,10 +32,7 @@ class Repository(QueryBuilder[T], RepositoryInterface[T]):
 
     def destroy(self, model: T | None = None) -> None:
         self._prepare_destroy_model_if_needed(model)
-
-        assert self._query is not None
-
-        # TODO - Apply Scopes before executing the delete query
+        self._before_query()
 
         with self._connection() as session:
             try:
@@ -69,11 +66,14 @@ class Repository(QueryBuilder[T], RepositoryInterface[T]):
 
         return model
 
+    def all(self) -> list[T]:
+        return self.get()
+
     def get(self) -> list[T]:
         self._before_query()
         return self._get()
 
-    def find_by_id(self, value: Any) -> T | None:
+    def find(self, value: Any) -> T | None:
         return self.select().where(self.__model__.primary_key_column() == value).first()
 
     def paginate(
@@ -82,6 +82,7 @@ class Repository(QueryBuilder[T], RepositoryInterface[T]):
         per_page: int | None = None,
         **kwargs: Any,
     ) -> PaginatorInterface[T, Any]:
+        self._prepare_query()
         self._before_query()
 
         total = self._count(reset_query=False)
