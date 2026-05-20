@@ -1,11 +1,10 @@
 from typing import Any
 
 from pydantic_settings import BaseSettings
+from pyrannic.contracts.config.configuration import ConfigurationInterface
 
-from pyrannic.contracts.config.config import ConfigInterface
 
-
-class Configuration(ConfigInterface, BaseSettings):
+class Configuration(ConfigurationInterface, BaseSettings):
     def __init__(self) -> None:
         super().__init__(_case_sensitive=False, _env_prefix=self.env_prefix)
 

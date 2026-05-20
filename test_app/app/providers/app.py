@@ -1,6 +1,6 @@
 from app.services.foo import FooService, FooServiceInterface
 
-from pyrannic.bootstrap.service_provider import ServiceProvider
+from pyrannic import ServiceProvider
 
 
 class AppServiceProvider(ServiceProvider):

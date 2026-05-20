@@ -1,7 +1,7 @@
 from typing import Any
 
 
-class ConfigInterface:
+class ConfigurationInterface:
     @property
     def config_key(self) -> str:
         raise NotImplementedError("Subclasses must implement config_key property")

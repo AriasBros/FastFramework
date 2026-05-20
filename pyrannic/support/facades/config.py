@@ -37,6 +37,35 @@ class Config(Facade[ConfigRepositoryInterface]):
         return cls.call("boolean", name, default)
 
     @classmethod
-    def array(cls, name: str, default: list[T]) -> list[T]:
+    def array(cls, name: str, default: list[T] = []) -> list[T]:
         """Get the specified configuration value as a list."""
         return cls.call("array", name, default)
+
+    @classmethod
+    def optional_string(cls, name: str, default: str | None = None) -> str | None:
+        """Get the specified configuration value as a string."""
+        return cls.call("optional_string", name, default)
+
+    @classmethod
+    def optional_integer(cls, name: str, default: int | None = None) -> int | None:
+        """Get the specified configuration value as an integer."""
+        return cls.call("optional_integer", name, default)
+
+    @classmethod
+    def optional_float(cls, name: str, default: float | None = None) -> float | None:
+        """Get the specified configuration value as a float."""
+        return cls.call("optional_float", name, default)
+
+    @classmethod
+    def optional_boolean(cls, name: str, default: bool | None = None) -> bool | None:
+        """Get the specified configuration value as a boolean."""
+        return cls.call("optional_boolean", name, default)
+
+    @classmethod
+    def optional_array(
+        cls,
+        name: str,
+        default: list[T] | None = None,
+    ) -> list[T] | None:
+        """Get the specified configuration value as a list."""
+        return cls.call("optional_array", name, default)

@@ -2,8 +2,8 @@ from typing import Any
 
 from annotated_types import T
 
-from pyrannic.support.collections.dot_dict import get, has, set
 from pyrannic.contracts.config.respository import ConfigRepositoryInterface
+from pyrannic.support.collections.dot_dict import get, has, set
 
 
 class ConfigRepository(ConfigRepositoryInterface):
@@ -34,10 +34,7 @@ class ConfigRepository(ConfigRepositoryInterface):
         value = self.get(name, default)
         return str(value) if value is not None else default
 
-    def string(self, name: str, default: str = "") -> str:
-        return self.optional_string(name, default) or default
-
-    def integer(self, name: str, default: int = 0) -> int:
+    def optional_integer(self, name: str, default: int | None = None) -> int | None:
         value = self.get(name, default)
 
         try:
@@ -45,7 +42,7 @@ class ConfigRepository(ConfigRepositoryInterface):
         except (ValueError, TypeError):
             return default
 
-    def float(self, name: str, default: float = 0.0) -> float:
+    def optional_float(self, name: str, default: float | None = None) -> float | None:
         value = self.get(name, default)
 
         try:
@@ -53,7 +50,7 @@ class ConfigRepository(ConfigRepositoryInterface):
         except (ValueError, TypeError):
             return default
 
-    def boolean(self, name: str, default: bool = False) -> bool:
+    def optional_boolean(self, name: str, default: bool | None = None) -> bool | None:
         value = self.get(name, default)
 
         if isinstance(value, bool):
@@ -65,6 +62,25 @@ class ConfigRepository(ConfigRepositoryInterface):
 
         return default
 
-    def array(self, name: str, default: list[T]) -> list[T]:
+    def optional_array(
+        self,
+        name: str,
+        default: list[T] | None = None,
+    ) -> list[T] | None:
         value = self.get(name, default)
         return list(value) if value is not None else default
+
+    def string(self, name: str, default: str = "") -> str:
+        return self.optional_string(name, default) or default
+
+    def integer(self, name: str, default: int = 0) -> int:
+        return self.optional_integer(name, default) or default
+
+    def float(self, name: str, default: float = 0.0) -> float:
+        return self.optional_float(name, default) or default
+
+    def boolean(self, name: str, default: bool = False) -> bool:
+        return self.optional_boolean(name, default) or default
+
+    def array(self, name: str, default: list[T] = []) -> list[T]:
+        return self.optional_array(name, default) or default

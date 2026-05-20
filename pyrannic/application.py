@@ -34,7 +34,7 @@ class Application(ApplicationInterface):
         super().__init__(
             title=app_name,
             debug=Config.boolean("app.debug", debug),
-            version=Config.string("APP_VERSION", version),
+            version=Config.string("app.version", version),
             lifespan=bootstrap_manager.lifespan,
             **kwargs,
         )

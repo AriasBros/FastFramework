@@ -1,3 +1,5 @@
+from .config.configuration import ConfigurationInterface as ConfigurationInterface
+from .config.respository import ConfigRepositoryInterface as ConfigRepositoryInterface
 from .database.connector import ConnectorInterface as ConnectorInterface
 from .database.manager import DatabaseManagerInterface as DatabaseManagerInterface
 from .http.resources.collection import (

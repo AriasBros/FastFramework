@@ -26,6 +26,35 @@ class ConfigRepositoryInterface(ABC):
         pass
 
     @abstractmethod
+    def optional_string(self, name: str, default: str | None = None) -> str | None:
+        """Get the specified configuration value as a string."""
+        pass
+
+    @abstractmethod
+    def optional_integer(self, name: str, default: int | None = None) -> int | None:
+        """Get the specified configuration value as an integer."""
+        pass
+
+    @abstractmethod
+    def optional_float(self, name: str, default: float | None = None) -> float | None:
+        """Get the specified configuration value as a float."""
+        pass
+
+    @abstractmethod
+    def optional_boolean(self, name: str, default: bool | None = None) -> bool | None:
+        """Get the specified configuration value as a boolean."""
+        pass
+
+    @abstractmethod
+    def optional_array(
+        self,
+        name: str,
+        default: list[T] | None = None,
+    ) -> list[T] | None:
+        """Get the specified configuration value as a list."""
+        pass
+
+    @abstractmethod
     def string(self, name: str, default: str = "") -> str:
         """Get the specified configuration value as a string."""
         pass
@@ -46,6 +75,6 @@ class ConfigRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def array(self, name: str, default: list[T]) -> list[T]:
+    def array(self, name: str, default: list[T] = []) -> list[T]:
         """Get the specified configuration value as a list."""
         pass
