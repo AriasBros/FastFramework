@@ -47,7 +47,7 @@ class MiddlewaresServiceProvider(ServiceProvider):
                     self.app.middleware("http")(middleware)
 
 
-class ExceptionHandlersProvider(ServiceProvider):
+class ExceptionHandlersServiceProvider(ServiceProvider):
     def register(self):
         self.app.add_exception_handler(
             UnprocessableEntityException, handle_unprocessable_entity_exception

@@ -6,12 +6,12 @@ from pyrannic import (
     DatabaseServiceProvider,
     MiddlewaresServiceProvider,
     RoutersServiceProvider,
-    ExceptionHandlersProvider,
+    ExceptionHandlersServiceProvider,
     ServiceProvider,
 )
 
 providers: list[Type[ServiceProvider]] = [
-    ExceptionHandlersProvider,
+    ExceptionHandlersServiceProvider,
     AppServiceProvider,
     DatabaseServiceProvider,
     RoutersServiceProvider,
