@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Self, TypeVar
+from typing import Any, Generic, Self, TypeVar, overload
 
 from pyrannic.contracts.orm.model import ModelInterface
 
@@ -38,8 +38,15 @@ class QueryBuilderInterface(ABC, Generic[T]):
         """Set the offset for the current query."""
         pass
 
+    @overload
     @abstractmethod
     def where(self, *where_clause: Any) -> Self:
+        """Add where conditions to the current query."""
+        pass
+
+    @overload
+    @abstractmethod
+    def where(self, **kwargs: Any) -> Self:
         """Add where conditions to the current query."""
         pass
 

@@ -7,3 +7,4 @@ from .http.resources.collection import (
 )
 from .http.resources.resource import ResourceInterface as ResourceInterface
 from .pagination.paginator import PaginatorInterface as PaginatorInterface
+from .container.container import ContainerInterface as ContainerInterface

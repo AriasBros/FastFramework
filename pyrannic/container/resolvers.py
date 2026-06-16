@@ -1,9 +1,8 @@
-import asyncio
 import inspect
 from contextlib import AsyncExitStack
-from typing import Any, Callable, List, Optional, Type, TypeVar
+from typing import Any, Callable, List, TypeVar
 
-from fastapi import FastAPI
+from fastapi.concurrency import run_in_threadpool
 from fastapi.dependencies.utils import (
     SolvedDependency,
     get_dependant,
@@ -12,39 +11,10 @@ from fastapi.dependencies.utils import (
 from fastapi.exceptions import ValidationException
 from starlette.requests import Request
 
+from pyrannic.contracts.application import ApplicationInterface
+
+
 T = TypeVar("T")
-
-
-async def resolve(
-    class_type: Type[T],
-    request: Request | None = None,
-    security_scopes: Optional[List[str]] = None,
-    app: FastAPI | None = None,
-) -> T:
-    return await resolve_dependant(
-        class_type,
-        class_type.__name__,
-        request,
-        security_scopes=security_scopes,
-        app=app,
-    )
-
-
-# TODO
-async def resolve_provider(
-    provider_class: Type[T],
-    request: Request,
-    security_scopes: Optional[List[str]] = None,
-) -> T:
-    provider = await resolve(provider_class, request, security_scopes=security_scopes)
-
-    if hasattr(provider, "boot") and callable(getattr(provider, "boot")):
-        result = provider.boot()
-
-        if asyncio.iscoroutine(result):
-            await result
-
-    return provider
 
 
 # https://stackoverflow.com/a/78279023
@@ -53,13 +23,16 @@ async def resolve_dependant(
     command: Callable[..., Any],
     name: str | None = None,
     request: Request | None = None,
-    security_scopes: Optional[List[str]] = None,
-    app: FastAPI | None = None,
+    security_scopes: list[str] | None = None,
+    app: ApplicationInterface | None = None,
     **kwargs: Any,
 ) -> Any:
     """Given a callable, will solve its dependencies and run it."""
 
     async with AsyncExitStack() as cm:
+        name = name or command.__name__
+        path = request.url.path if request else f"command:{name}"
+
         request = request or Request(
             {
                 "app": app,
@@ -75,7 +48,8 @@ async def resolve_dependant(
         )
 
         dependant = get_dependant(
-            path=f"command:{name or command.__name__}",
+            name=name,
+            path=path,
             call=command,
             own_oauth_scopes=security_scopes,
         )
@@ -97,7 +71,11 @@ async def resolve_dependant(
         if inspect.iscoroutinefunction(dependant.call):
             result = await dependant.call(**dependencies.values, **kwargs)
         else:
-            result = dependant.call(**dependencies.values, **kwargs)
+            result = await run_in_threadpool(
+                dependant.call,
+                **dependencies.values,
+                **kwargs,
+            )
 
         return result
 

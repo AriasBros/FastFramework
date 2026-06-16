@@ -1,48 +1,48 @@
-from typing import Any
+from typing import Any, Tuple, cast
 
 from pyrannic.contracts.orm.repository import RepositoryInterface, T
 from pyrannic.contracts.pagination.paginator import PaginatorInterface
 from pyrannic.orm.sqlalchemy.query_builder import QueryBuilder
 from pyrannic.pagination.paginator import Paginator
 
+from sqlalchemy.sql.selectable import TypedReturnsRows
+
 
 class Repository(QueryBuilder[T], RepositoryInterface[T]):
     def create(self, model: T) -> T:
-        with self._connection() as session:
-            try:
-                session.add(model)
-                session.commit()
-                session.refresh(model)
-                return model
-            except Exception as e:
-                session.rollback()
-                self._logger.exception(f"Rolling Back. Error inserting model: {e}")
-                raise
+        try:
+            self.session.add(model)
+            self.session.commit()
+            self.session.refresh(model)
+            return model
+        except Exception as e:
+            self.session.rollback()
+            self._logger.exception(f"Rolling Back. Error inserting model: {e}")
+            raise
 
     def update(self, model: T) -> T:
-        with self._connection() as session:
-            try:
-                session.merge(model)
-                session.commit()
-                return model
-            except Exception as e:
-                session.rollback()
-                self._logger.exception(f"Rolling Back. Error updating model: {e}")
-                raise
+        try:
+            self.session.merge(model)
+            self.session.commit()
+            return model
+        except Exception as e:
+            self.session.rollback()
+            self._logger.exception(f"Rolling Back. Error updating model: {e}")
+            raise
 
     def destroy(self, model: T | None = None) -> None:
         self._prepare_destroy_model_if_needed(model)
         self._before_query()
 
-        with self._connection() as session:
-            try:
-                session.execute(self._query)
-                session.commit()
-            except Exception as e:
-                session.rollback()
-                raise e
-            finally:
-                self._reset_query()
+        try:
+            self.session.execute(cast(TypedReturnsRows[Tuple[T]], self._query))
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            self._logger.exception(f"Rolling Back. Error destroying model: {e}")
+            raise
+        finally:
+            self._reset_query()
 
     def remove(self, model: T) -> T:
         return self.update(model) if self._remove_model(model) else model
@@ -56,12 +56,9 @@ class Repository(QueryBuilder[T], RepositoryInterface[T]):
 
     def first(self) -> T | None:
         self._before_query()
-
-        model = None
-
-        with self._connection() as session:
-            model = (session.scalars(self._query)).first()
-
+        model = (
+            self.session.scalars(cast(TypedReturnsRows[Tuple[T]], self._query))
+        ).first()
         self._reset_query()
 
         return model
@@ -92,22 +89,19 @@ class Repository(QueryBuilder[T], RepositoryInterface[T]):
         return Paginator(items, page, per_page, total, last_page, **kwargs)
 
     def _get(self) -> list[T]:
-        models = None
-
-        with self._connection() as session:
-            models = (session.scalars(self._query)).all()
-
+        models = (
+            self.session.scalars(cast(TypedReturnsRows[Tuple[T]], self._query))
+        ).all()
         self._reset_query()
 
-        return models or []
+        return list(models)
 
     def _count(self, reset_query: bool = True) -> int:
-        count = 0
-
-        with self._connection() as session:
-            count = session.execute(self._get_count_query).scalar()
+        count = self.session.execute(
+            cast(TypedReturnsRows[Tuple[int]], self._get_count_query)
+        ).scalar()
 
         if reset_query:
             self._reset_query()
 
-        return count
+        return count or 0

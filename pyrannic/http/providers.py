@@ -1,3 +1,5 @@
+from inspect import isfunction
+
 from fastapi import APIRouter
 
 from pyrannic.bootstrap.service_provider import ServiceProvider
@@ -5,6 +7,7 @@ from pyrannic.container.utils import (
     get_attrs,
     get_class,
     get_functions,
+    get_module_attr,
     get_modules,
     import_modules,
 )
@@ -21,8 +24,11 @@ from pyrannic.http.exceptions.unprocessable_entity import (
 
 class RoutersServiceProvider(ServiceProvider):
     def register(self):
-        modules = get_modules("app/http/routers")
-        routers: list[APIRouter] = get_attrs(modules, "router")
+        routers = get_module_attr("bootstrap.routers", "routers", [])
+
+        if len(routers) == 0:
+            modules = get_modules("app/http/routers")
+            routers: list[APIRouter] = get_attrs(modules, "router")
 
         for router in routers:
             self.app.include_router(router)
@@ -30,21 +36,30 @@ class RoutersServiceProvider(ServiceProvider):
 
 class MiddlewaresServiceProvider(ServiceProvider):
     def register(self):
-        for module_path, module in import_modules("app/http/middlewares"):
-            middleware = get_class(
-                module,
-                module_path=module_path,
-                class_suffix="Middleware",
-            )
+        middlewares = get_module_attr("bootstrap.middlewares", "middlewares", [])
 
-            if middleware:
-                self.app.add_middleware(middleware)
-            else:
-                for _, middleware in get_functions(
-                    module,
-                    lambda name: not name.startswith("_"),
-                ):
+        if middlewares:
+            for middleware in middlewares:
+                if isfunction(middleware):
                     self.app.middleware("http")(middleware)
+                else:
+                    self.app.add_middleware(middleware)
+        else:
+            for module_path, module in import_modules("app/http/middlewares"):
+                middleware = get_class(
+                    module,
+                    module_path=module_path,
+                    class_suffix="Middleware",
+                )
+
+                if middleware:
+                    self.app.add_middleware(middleware)
+                else:
+                    for _, middleware in get_functions(
+                        module,
+                        lambda name: not name.startswith("_"),
+                    ):
+                        self.app.middleware("http")(middleware)
 
 
 class ExceptionHandlersServiceProvider(ServiceProvider):

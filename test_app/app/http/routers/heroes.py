@@ -3,9 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from pyrannic import ResourceNotFoundException
+from pyrannic.ioc import App, Container, Resolve
+from pyrannic.contracts import ContainerInterface
 from test_app.app.http.resources.hero import Hero, HeroesCollection
 from test_app.app.models.hero import Hero as HeroModel
 from test_app.app.repositories.heroes import HeroesRepository
+from test_app.app.services.foo import BarService, FooServiceInterface
 
 router = APIRouter(tags=["Heroes"])
 
@@ -16,9 +19,23 @@ router = APIRouter(tags=["Heroes"])
     description="Endpoint to retrieve the list of heroes.",
 )
 def index(
-    repository: Annotated[HeroesRepository, Depends()],
+    container: Resolve[ContainerInterface],
+    container2: Container,
+    app: App,
+    repository2: Annotated[HeroesRepository, Depends()],
+    repository3: Resolve[HeroesRepository],
+    repository4: Resolve[HeroesRepository],
+    foo: Resolve[FooServiceInterface],
+    bar: Resolve[BarService],
 ) -> HeroesCollection:
-    return HeroesCollection(repository.paginate())
+    print(
+        "Container in index endpoint",
+        foo.get_app_name(),
+        bar.foo.get_app_name(),
+    )
+    return HeroesCollection(
+        repository2.where(HeroModel.name.like("%batman%")).paginate()
+    )
 
 
 @router.get(

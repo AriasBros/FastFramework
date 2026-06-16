@@ -6,6 +6,9 @@ from pyrannic.config.provider import ConfigRepositoryProvider
 from pyrannic.container.container import Container
 from pyrannic.contracts.application import ApplicationInterface
 from pyrannic.contracts.container.container import ContainerInterface
+from pyrannic.http.middlewares.forget_scoped_instances import (
+    ForgetScopedInstancesMiddleware,
+)
 from pyrannic.logging.provider import LoggingServiceProvider
 from pyrannic.support.facades.config import Config
 
@@ -40,10 +43,14 @@ class Application(ApplicationInterface):
         )
 
         bootstrap_manager.run(self)
+        self.add_middleware(ForgetScopedInstancesMiddleware)
 
     @property
     def container(self) -> ContainerInterface:
         if not hasattr(self, "_container"):
             self._container = Container(self)
+            self._container.instance(ApplicationInterface, self)
+            self._container.instance(ContainerInterface, self._container)
+            self._container.set_alias(ApplicationInterface, "app")
 
         return self._container

@@ -1,48 +1,48 @@
-from typing import Any
+from typing import Any, Tuple, cast
 
 from pyrannic.contracts.orm.async_repository import RepositoryInterface, T
 from pyrannic.contracts.pagination.paginator import PaginatorInterface
-from pyrannic.orm.sqlalchemy.query_builder import QueryBuilder
+from pyrannic.orm.sqlalchemy.async_query_builder import AsyncQueryBuilder
 from pyrannic.pagination.paginator import Paginator
 
+from sqlalchemy.sql.selectable import TypedReturnsRows
 
-class AsyncRepository(QueryBuilder[T], RepositoryInterface[T]):
+
+class AsyncRepository(AsyncQueryBuilder[T], RepositoryInterface[T]):
     async def create(self, model: T) -> T:
-        async with self._connection() as session:
-            try:
-                session.add(model)
-                await session.commit()
-                await session.refresh(model)
-                return model
-            except Exception as e:
-                await session.rollback()
-                self._logger.exception(f"Rolling Back. Error inserting object: {e}")
-                raise
+        try:
+            self.session.add(model)
+            await self.session.commit()
+            await self.session.refresh(model)
+            return model
+        except Exception as e:
+            await self.session.rollback()
+            self._logger.exception(f"Rolling Back. Error inserting object: {e}")
+            raise
 
     async def update(self, model: T) -> T:
-        async with self._connection() as session:
-            try:
-                await session.merge(model)
-                await session.commit()
-                return model
-            except Exception as e:
-                await session.rollback()
-                self._logger.exception(f"Rolling Back. Error updating model: {e}")
-                raise
+        try:
+            await self.session.merge(model)
+            await self.session.commit()
+            return model
+        except Exception as e:
+            await self.session.rollback()
+            self._logger.exception(f"Rolling Back. Error updating model: {e}")
+            raise
 
     async def destroy(self, model: T | None = None) -> None:
         self._prepare_destroy_model_if_needed(model)
         self._before_query()
 
-        async with self._connection() as session:
-            try:
-                await session.execute(self._query)
-                await session.commit()
-            except Exception as e:
-                await session.rollback()
-                raise e
-            finally:
-                self._reset_query()
+        try:
+            await self.session.execute(cast(TypedReturnsRows[Tuple[T]], self._query))
+            await self.session.commit()
+        except Exception as e:
+            await self.session.rollback()
+            self._logger.exception(f"Rolling Back. Error destroying model: {e}")
+            raise
+        finally:
+            self._reset_query()
 
     async def remove(self, model: T) -> T:
         return (await self.update(model)) if self._remove_model(model) else model
@@ -56,12 +56,9 @@ class AsyncRepository(QueryBuilder[T], RepositoryInterface[T]):
 
     async def first(self) -> T | None:
         self._before_query()
-
-        model = None
-
-        async with self._connection() as session:
-            model = (await session.scalars(self._query)).first()
-
+        model = (
+            await self.session.scalars(cast(TypedReturnsRows[Tuple[T]], self._query))
+        ).first()
         self._reset_query()
 
         return model
@@ -94,22 +91,21 @@ class AsyncRepository(QueryBuilder[T], RepositoryInterface[T]):
         return Paginator(items, page, per_page, total, last_page, **kwargs)
 
     async def _get(self) -> list[T]:
-        models = None
-
-        async with self._connection() as session:
-            models = (await session.scalars(self._query)).all()
-
+        models = (
+            await self.session.scalars(cast(TypedReturnsRows[Tuple[T]], self._query))
+        ).all()
         self._reset_query()
 
-        return models or []
+        return list(models)
 
     async def _count(self, reset_query: bool = True) -> int:
-        count = 0
-
-        async with self._connection() as session:
-            count = (await session.execute(self._get_count_query)).scalar()
+        count = (
+            await self.session.execute(
+                cast(TypedReturnsRows[Tuple[int]], self._get_count_query)
+            )
+        ).scalar()
 
         if reset_query:
             self._reset_query()
 
-        return count
+        return count or 0

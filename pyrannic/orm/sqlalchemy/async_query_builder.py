@@ -4,16 +4,16 @@ from typing import Annotated
 from pyrannic.container.param_functions import Resolves
 from pyrannic.contracts.orm.repository import T
 from pyrannic.orm.sqlalchemy.abstract_query_builder import AbstractQueryBuilder
-from pyrannic.orm.sqlalchemy.session import Session
+from pyrannic.orm.sqlalchemy.session import AsyncSession
 
-from sqlalchemy.orm import Session as _Session
+from sqlalchemy.ext.asyncio import AsyncSession as _AsyncSession
 
 
-class QueryBuilder(AbstractQueryBuilder[T]):
-    def __init__(self, session: Session, logger: Annotated[Logger, Resolves()]):
+class AsyncQueryBuilder(AbstractQueryBuilder[T]):
+    def __init__(self, session: AsyncSession, logger: Annotated[Logger, Resolves()]):
         self._session = session
         super().__init__(logger=logger)
 
     @property
-    def session(self) -> _Session:
+    def session(self) -> _AsyncSession:
         return self._session

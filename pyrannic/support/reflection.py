@@ -1,5 +1,11 @@
+from abc import ABC
+from inspect import isclass
 from types import get_original_bases
 from typing import get_args
+
+
+def is_interface(cls: object) -> bool:
+    return isclass(cls) and ABC in cls.__bases__
 
 
 def get_generic_type(instance_or_class: object | type, generic_index: int = 0) -> type:

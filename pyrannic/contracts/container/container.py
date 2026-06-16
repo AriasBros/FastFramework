@@ -3,6 +3,11 @@ from collections.abc import Callable
 from typing import Any
 
 from annotated_types import T
+from fastapi import Request
+
+from pyrannic.contracts.container.contextual_binding_builder import (
+    ContextualBindingBuilderInterface,
+)
 
 
 class ContainerInterface(ABC):
@@ -24,6 +29,24 @@ class ContainerInterface(ABC):
         shared: bool = False,
     ) -> None:
         """Register a binding if it hasn't already been registered."""
+        pass
+
+    @abstractmethod
+    def scoped(
+        self,
+        abstract: str | type,
+        concrete: type[Any] | Callable[..., Any],
+    ) -> None:
+        """Register a scoped binding in the container."""
+        pass
+
+    @abstractmethod
+    def scoped_if(
+        self,
+        abstract: str | type,
+        concrete: type[Any] | Callable[..., Any],
+    ) -> None:
+        """Register a scoped binding if it hasn't already been registered."""
         pass
 
     @abstractmethod
@@ -50,11 +73,32 @@ class ContainerInterface(ABC):
         pass
 
     @abstractmethod
-    def is_bound(self, abstract: str | type) -> bool:
+    def add_contextual_binding(
+        self,
+        concrete: str,
+        abstract: str | type,
+        implementation: type | Callable[..., Any],
+    ) -> None:
+        """Add a contextual binding to the container."""
         pass
 
     @abstractmethod
-    async def resolve(self, abstract: str | type[T]) -> T:
+    def when(self, concrete: type | list[type]) -> ContextualBindingBuilderInterface:
+        """Define a contextual binding."""
+        pass
+
+    @abstractmethod
+    def is_bound(self, abstract: str | type) -> bool:
+        """Determine if the given abstract type has been bound."""
+        pass
+
+    @abstractmethod
+    async def resolve(
+        self,
+        abstract: str | type[T],
+        request: Request | None = None,
+    ) -> T:
+        """Resolve the given type from the container."""
         pass
 
     @abstractmethod

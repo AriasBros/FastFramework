@@ -21,6 +21,6 @@ class Resolves(Depends):
 
     def _get_dependency(self, abstract: str | type) -> Callable[..., Any]:
         async def dependency(request: RequestInterface) -> Any:
-            return await request.app.container.resolve(abstract)
+            return await request.app.container.resolve(abstract, request)  # type: ignore
 
         return dependency

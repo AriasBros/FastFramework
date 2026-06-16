@@ -5,7 +5,6 @@ from typing import AsyncGenerator, Self, Sequence, Type
 from dotenv import load_dotenv
 
 from pyrannic.bootstrap.service_provider import ServiceProvider
-from pyrannic.container.resolvers import resolve_dependant
 from pyrannic.container.utils import get_module_attr
 from pyrannic.contracts.application import ApplicationInterface
 from pyrannic.support.facades.facade import Facade
@@ -94,12 +93,13 @@ class BootstrapManager:
 
         for provider in providers:
             try:
-                name = provider.__class__.__name__
                 method = getattr(provider, method_name, None)
 
                 if method is not None:
-                    await resolve_dependant(method, name=name, app=app)
-                    self._logger.info(f"✅ {info_message} {name}")
+                    await app.container.call(method)
+                    self._logger.info(
+                        f"✅ {info_message} {provider.__class__.__name__}"
+                    )
             except Exception as e:
                 self._provider_exec_failed(provider, method_name, e)
 

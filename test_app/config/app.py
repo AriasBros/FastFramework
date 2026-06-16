@@ -16,3 +16,22 @@ class AppConfig(Configuration):
     """When your application is in debug mode, detailed error messages with
     stack traces will be shown on every error that occurs within your
     application. If disabled, a simple generic error page is shown."""
+
+    timezone: str = Field(default="UTC")
+    """
+    You may set the application's default timezone here, which Python's date and date-time functions will then utilize.
+    "UTC" is the default setting, as it is suitable for most use cases.
+    """
+
+    locale: str = Field(default="en")
+    """
+    The application locale determines the default locale that will be used
+    by translation / localization methods. This option can be
+    set to any locale for which you plan to have translation strings.
+    """
+
+    fallback_locale: str = Field(default="en")
+    """
+    This value determines the fallback locale your application will use for
+    translations and other locale-specific features when the default locale is not available.
+    """
