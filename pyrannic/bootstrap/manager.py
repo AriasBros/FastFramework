@@ -5,9 +5,9 @@ from typing import AsyncGenerator, Self, Sequence, Type
 from dotenv import load_dotenv
 
 from pyrannic.bootstrap.service_provider import ServiceProvider
-from pyrannic.container.utils import get_module_attr
 from pyrannic.contracts.application import ApplicationInterface
 from pyrannic.support.facades.facade import Facade
+from pyrannic.support.reflection import get_attr
 
 
 class BootstrapManager:
@@ -140,4 +140,4 @@ class BootstrapManager:
         if service_providers:
             return service_providers
 
-        return get_module_attr("bootstrap.providers", "providers", [])
+        return get_attr("bootstrap.providers", "providers", [])

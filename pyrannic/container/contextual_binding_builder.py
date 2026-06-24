@@ -10,7 +10,7 @@ class ContextualBindingBuilder(ContextualBindingBuilderInterface):
     def __init__(
         self,
         container: ContainerInterface,
-        concrete: str | list[str],
+        concrete: type | list[type],
     ) -> None:
         self._container = container
         self._concrete = concrete

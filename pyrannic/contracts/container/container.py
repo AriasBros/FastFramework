@@ -75,7 +75,7 @@ class ContainerInterface(ABC):
     @abstractmethod
     def add_contextual_binding(
         self,
-        concrete: str,
+        concrete: type,
         abstract: str | type,
         implementation: type | Callable[..., Any],
     ) -> None:
@@ -113,12 +113,12 @@ class ContainerInterface(ABC):
 
     @abstractmethod
     def set_alias(self, abstract: str | type, alias: str | type) -> None:
-        """Alias a type to a different one."""
+        """Alias an abstract type to a different key or type."""
         pass
 
     @abstractmethod
     def is_alias(self, alias: str | type) -> bool:
-        """Determine if a given string/type is an alias."""
+        """Determine if a given key or type is an alias."""
         pass
 
     @abstractmethod

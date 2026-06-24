@@ -3,14 +3,6 @@ from inspect import isfunction
 from fastapi import APIRouter
 
 from pyrannic.bootstrap.service_provider import ServiceProvider
-from pyrannic.container.utils import (
-    get_attrs,
-    get_class,
-    get_functions,
-    get_module_attr,
-    get_modules,
-    import_modules,
-)
 from pyrannic.http.exceptions.exception import handle_exception
 from pyrannic.http.exceptions.resource_not_found import (
     ResourceNotFoundException,
@@ -20,14 +12,17 @@ from pyrannic.http.exceptions.unprocessable_entity import (
     UnprocessableEntityException,
     handle_unprocessable_entity_exception,
 )
+from pyrannic.support.importing import import_modules
+from pyrannic.support.path import get_module_paths
+from pyrannic.support.reflection import get_attr, get_attrs, get_class, get_functions
 
 
 class RoutersServiceProvider(ServiceProvider):
     def register(self):
-        routers = get_module_attr("bootstrap.routers", "routers", [])
+        routers = get_attr("bootstrap.routers", "routers", [])
 
         if len(routers) == 0:
-            modules = get_modules("app/http/routers")
+            modules = get_module_paths("app/http/routers")
             routers: list[APIRouter] = get_attrs(modules, "router")
 
         for router in routers:
@@ -36,7 +31,7 @@ class RoutersServiceProvider(ServiceProvider):
 
 class MiddlewaresServiceProvider(ServiceProvider):
     def register(self):
-        middlewares = get_module_attr("bootstrap.middlewares", "middlewares", [])
+        middlewares = get_attr("bootstrap.middlewares", "middlewares", [])
 
         if middlewares:
             for middleware in middlewares:
@@ -45,10 +40,9 @@ class MiddlewaresServiceProvider(ServiceProvider):
                 else:
                     self.app.add_middleware(middleware)
         else:
-            for module_path, module in import_modules("app/http/middlewares"):
+            for _, module in import_modules("app/http/middlewares"):
                 middleware = get_class(
                     module,
-                    module_path=module_path,
                     class_suffix="Middleware",
                 )
 

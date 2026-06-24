@@ -11,5 +11,5 @@ class PaginationRequest(BaseModel):
         - per_page: Tell us how many items there are in each page.
     """
 
-    page: int = Field(1, ge=1, description="Current page number")
-    per_page: int = Field(15, ge=1, description="Number of items per page")
+    page: int = Field(default=1, ge=1, description="Current page number")
+    per_page: int = Field(default=15, ge=1, description="Number of items per page")

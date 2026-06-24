@@ -22,21 +22,9 @@
 
 from __future__ import division, unicode_literals
 
-import os
 import re
-import sys
 from builtins import range
 from typing import Any
-
-try:
-    module = os.path.dirname(os.path.realpath(__file__))
-except Exception as _:
-    module = ""
-
-sys.path.insert(0, os.path.join(module, "..", "..", "..", ".."))
-
-
-sys.path.pop(0)
 
 VERB, NOUN, ADJECTIVE, ADVERB = "VB", "NN", "JJ", "RB"
 

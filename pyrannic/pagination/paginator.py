@@ -42,19 +42,16 @@ class Paginator(PaginatorInterface[ItemType, PaginationMeta]):
     def items(self) -> list[ItemType]:
         return self.__items
 
-    def meta(self, meta_class: type[PaginationMeta]) -> PaginationMeta:
+    def meta(self, meta_class: type[PaginationMeta] = PaginationMeta) -> PaginationMeta:
         return meta_class(
             current_page=self.__page,
             last_page=self.__last_page or math.ceil(self.__total / self.__per_page),
             per_page=self.__per_page,
             total=self.__total,
-            to=min(self.__page * self.__per_page, self.__total),
-            # We need to pass the `from` index as a string to avoid conflict with Python's reserved keyword
-            **{
-                "from": 0
-                if self.__total == 0
-                else (self.__page - 1) * self.__per_page + 1,
-            },
+            from_index=0
+            if self.__total == 0
+            else (self.__page - 1) * self.__per_page + 1,
+            to_index=min(self.__page * self.__per_page, self.__total),
             **(self.__kwargs or {}),
         )
 

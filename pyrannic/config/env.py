@@ -25,11 +25,12 @@ def read_int(key: str, default: int | None = 0) -> int:
 def read_bool(key: str, default: bool = False) -> bool:
     """Read a boolean value from environment variables."""
 
-    value = os.environ.get(key, str(default)).lower()
+    value = os.environ.get(key, str(default))
+    val_lower = value.lower()
 
-    if value in ("true", "1", "yes"):
+    if val_lower in ("true", "1", "yes"):
         return True
-    elif value in ("false", "0", "no"):
+    elif val_lower in ("false", "0", "no"):
         return False
     else:
         raise ValueError(f"Invalid boolean value for {key}: {value}")

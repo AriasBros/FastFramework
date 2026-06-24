@@ -39,18 +39,41 @@ class Binding:
 
 class Container(ContainerInterface):
     _app: ApplicationInterface
+    """ The application instance """
+
+    _abstracts: dict[str, type]
+    """ A mapping of abstract keys to their original types """
+
     _bindings: dict[str, Binding]
+    """ The container's bindings """
+
     _instances: dict[str, Any]
+    """ The container's shared instances """
+
+    _resolved: dict[str, bool]
+    """ A dict of the types that have been resolved """
+
     _aliases: dict[str, str | type]
+    """ The registered type aliases """
+
     _scoped_instances: list[str]
+    """ The container's scoped instances """
+
     _contextual: dict[str, dict[str, Binding]]
+    """ The contextual binding map """
+
     _build_stack: list[str]
+    """ The stack of concretions currently being built """
+
     _dependency_cache: dict[DependencyCacheKey, Any]
+    """ The cache for resolved dependencies, used by FastAPI's dependency resolution system """
 
     def __init__(self, app: ApplicationInterface):
         self._app = app
+        self._abstracts = {}
         self._bindings = {}
         self._instances = {}
+        self._resolved = {}
         self._scoped_instances = []
         self._aliases = {}
         self._contextual = {}
@@ -61,7 +84,9 @@ class Container(ContainerInterface):
         if isinstance(abstract, str):
             return abstract
         else:
-            return f"{abstract.__qualname__}:{inspect.getfile(abstract)}"
+            key = f"{abstract.__qualname__}:{inspect.getfile(abstract)}"
+            self._abstracts[key] = abstract
+            return key
 
     def bind(
         self,
@@ -76,7 +101,7 @@ class Container(ContainerInterface):
             concrete = self._get_closure(concrete)
 
         if not isinstance(concrete, FunctionType):
-            raise RequestValidationError("Concrete must be a class or a callable")
+            raise RequestValidationError(["Concrete must be a class or a callable"])
 
         self._bindings[abstract] = Binding(concrete, shared)
 
@@ -138,29 +163,31 @@ class Container(ContainerInterface):
 
     def add_contextual_binding(
         self,
-        concrete: str,
+        concrete: type,
         abstract: str | type,
         implementation: type | Callable[..., Any],
     ) -> None:
         abstract_key = self._abstract_to_str(abstract)
+        concrete_key = self._abstract_to_str(concrete)
 
-        if concrete not in self._contextual:
-            self._contextual[concrete] = {}
+        if concrete_key not in self._contextual:
+            self._contextual[concrete_key] = {}
 
         if inspect.isclass(implementation):
             implementation = self._get_closure(implementation)
 
-        self._contextual[concrete][abstract_key] = Binding(implementation)
+        self._contextual[concrete_key][abstract_key] = Binding(implementation)
 
     def when(self, concrete: type | list[type]) -> ContextualBindingBuilderInterface:
-        concretes = [concrete] if not isinstance(concrete, list) else concrete
-        concrete_keys = [self._abstract_to_str(c) for c in concretes]
-
-        return ContextualBindingBuilder(self, concrete_keys)
+        return ContextualBindingBuilder(self, concrete)
 
     def is_bound(self, abstract: str | type) -> bool:
         abstract = self._abstract_to_str(abstract)
-        return abstract in self._bindings or self.is_alias(abstract)
+        return (
+            abstract in self._bindings
+            or abstract in self._instances
+            or self.is_alias(abstract)
+        )
 
     async def resolve(
         self,
@@ -168,7 +195,8 @@ class Container(ContainerInterface):
         request: Request | None = None,
     ) -> T:
         binding_key = self.get_alias(abstract)
-        concrete = self._get_contextual_concrete(abstract)
+        concrete = self._get_contextual_concrete(binding_key)
+        needs_contextual_build = bool(concrete)
 
         self._build_stack.append(binding_key)
 
@@ -179,16 +207,23 @@ class Container(ContainerInterface):
             if not concrete:
                 concrete = self._get_concrete(abstract)
 
-            instance = await concrete(self._app, request)
+            instance = concrete(self._app, request)
 
-            if self._is_shared(binding_key, abstract):
+            if inspect.isawaitable(instance):
+                instance = await instance
+
+            if self.is_shared(abstract):
                 self._instances[binding_key] = instance
 
             return instance
         finally:
+            if not needs_contextual_build:
+                self._resolved[binding_key] = True
             self._build_stack.pop()
 
-    def _is_shared(self, binding_key: str, abstract: str | type[T]) -> bool:
+    def is_shared(self, abstract: str | type[T]) -> bool:
+        """Determine if a given type is shared."""
+
         binding_key = self._abstract_to_str(abstract)
 
         if binding_key in self._instances:
@@ -206,23 +241,24 @@ class Container(ContainerInterface):
 
     def _get_binding_type(self, abstract: str | type[T]) -> str | None:
         if isinstance(abstract, str):
-            return None
+            abstract_class = self._abstracts.get(abstract)
+        else:
+            abstract_class = abstract
 
-        binding_type = getattr(abstract, "__pyrannic_binding_type__", None)
+        if abstract_class:
+            binding_type = getattr(abstract_class, "__pyrannic_binding_type__", None)
+        else:
+            binding_type = None
 
         return binding_type
 
-    def _get_contextual_concrete(
-        self,
-        abstract: str | type,
-    ) -> Callable[..., Any] | None:
-        binding_key = self._abstract_to_str(abstract)
+    def _get_contextual_concrete(self, abstract: str) -> Callable[..., Any] | None:
         last_concrete = self._build_stack[-1] if self._build_stack else None
 
         if last_concrete and last_concrete in self._contextual:
             contextual_bindings = self._contextual[last_concrete]
-            if binding_key in contextual_bindings:
-                return contextual_bindings[binding_key].concrete
+            if abstract in contextual_bindings:
+                return contextual_bindings[abstract].concrete
 
         return None
 
@@ -232,10 +268,10 @@ class Container(ContainerInterface):
 
         if binding_key not in self._bindings:
             if isinstance(abstract, str):
-                raise RequestValidationError(f"No binding found for key {abstract}")
+                raise RequestValidationError([f"No binding found for key {abstract}"])
             elif is_interface(abstract):
                 raise RequestValidationError(
-                    f"No binding found for interface {abstract.__name__}"
+                    [f"No binding found for interface {abstract.__name__}"]
                 )
             else:
                 concrete = self._get_closure(abstract)
@@ -249,22 +285,23 @@ class Container(ContainerInterface):
 
     def resolved(self, abstract: str | type[T]) -> bool:
         abstract = self.get_alias(abstract)
-        return abstract in self._instances
+        return abstract in self._instances or abstract in self._resolved
 
     def set_alias(self, abstract: str | type, alias: str | type) -> None:
-        abstract = self._abstract_to_str(abstract)
-        alias = self._abstract_to_str(alias)
+        abstract_key = self._abstract_to_str(abstract)
+        alias_key = self._abstract_to_str(alias)
 
-        if alias == abstract:
+        if alias_key == abstract_key:
             raise ValueError(f"{abstract} cannot be aliased to itself.")
 
-        self._aliases[alias] = abstract
+        self._aliases[alias_key] = abstract
 
     def is_alias(self, alias: str | type) -> bool:
         alias = self._abstract_to_str(alias)
         return alias in self._aliases
 
     def get_alias(self, abstract: str | type) -> str:
+        """Get the alias for an abstract if available"""
         abstract = self._abstract_to_str(abstract)
 
         return (
@@ -274,6 +311,7 @@ class Container(ContainerInterface):
         )
 
     def flush(self) -> None:
+        self._abstracts.clear()
         self._bindings.clear()
         self._instances.clear()
         self._aliases.clear()
@@ -295,7 +333,8 @@ class Container(ContainerInterface):
             del self._aliases[abstract]
 
     def _get_closure(
-        self, concrete: type[T]
+        self,
+        concrete: type[T],
     ) -> Callable[[ApplicationInterface, Request], Awaitable[T]]:
         async def closure(app: ApplicationInterface, request: Request) -> T:
             return await self._resolve(concrete, app, request)
@@ -341,6 +380,8 @@ class Container(ContainerInterface):
             dependencies = await self._solve_dependencies(request, dependant)
             return await self._resolve_dependant(dependant, dependencies, **kwargs)
 
+    # https://stackoverflow.com/a/78279023
+    # https://github.com/fastapi/fastapi/discussions/7720
     async def _resolve_dependant(
         self,
         dependant: Dependant,
@@ -348,6 +389,9 @@ class Container(ContainerInterface):
         **kwargs: Any,
     ) -> Any:
         assert dependant.call  # For types
+
+        if dependencies.errors:
+            raise RequestValidationError(dependencies.errors)
 
         if inspect.iscoroutinefunction(dependant.call):
             result = await dependant.call(**dependencies.values, **kwargs)

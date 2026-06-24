@@ -10,7 +10,7 @@ def get_today_utc_datetime() -> datetime:
 
 
 def get_endday_utc_datetime() -> datetime:
-    return get_today_utc_datetime() + timedelta(days=1) - timedelta(seconds=1)
+    return get_today_utc_datetime() + timedelta(days=1) - timedelta(microseconds=1)
 
 
 def encode_datetime_to_iso_8601_with_z_suffix(date: datetime) -> str:
