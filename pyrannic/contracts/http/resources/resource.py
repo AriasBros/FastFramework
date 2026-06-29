@@ -24,9 +24,9 @@ class ResourceInterface(ABC, BaseResource, SerializableInterface):
         model: SerializableInterface,
         with_relationships: bool | list[str] = True,
     ) -> Self | None:
-        pass
+        """"""
 
     @classmethod
     @abstractmethod
     def model_to_dict(cls, model: SerializableInterface) -> dict[str, Any]:
-        pass
+        """"""

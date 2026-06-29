@@ -10,11 +10,11 @@ class LoggingServiceProvider(InstanceServiceProvider[Logger]):
     def aliases(self) -> list[str | type] | None:
         return ["log"]
 
-    def create(self) -> Logger:
+    def _create(self) -> Logger:
         logger = Logger("log")
         logger.setLevel(Config.integer("logging.level", logging.DEBUG))
 
-        handlers = Config.array("logging.handlers", [logging.StreamHandler()])
+        handlers = Config.list("logging.handlers", [logging.StreamHandler()])
         for handler in handlers:
             logger.addHandler(handler)
 

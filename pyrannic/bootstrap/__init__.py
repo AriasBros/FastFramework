@@ -1,3 +1,1 @@
-from pyrannic.bootstrap.service_provider import (
-    ServiceProvider,  # type: ignore  # noqa: F401
-)
+from .service_provider import ServiceProvider as ServiceProvider

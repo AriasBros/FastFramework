@@ -25,25 +25,29 @@ class Application(ApplicationInterface):
         debug: bool = False,
         version: str = "0.1.0",
         title: str | None = None,
+        base_path: str = "",
         **kwargs: Any,
     ) -> None:
-        bootstrap_manager = BootstrapManager().start_critical_services(
+        self._base_path = base_path
+        bootstrap_manager = BootstrapManager()
+
+        super().__init__(lifespan=bootstrap_manager.lifespan, **kwargs)
+
+        bootstrap_manager.start_critical_services(
             self,
             self._critical_service_providers,
         )
 
-        app_name = Config.string("app.name", title or "Pyrannic Application")
-
-        super().__init__(
-            title=app_name,
-            debug=Config.boolean("app.debug", debug),
-            version=Config.string("app.version", version),
-            lifespan=bootstrap_manager.lifespan,
-            **kwargs,
-        )
+        self.title = Config.string("app.name", title or "Pyrannic Application")
+        self.debug = Config.boolean("app.debug", debug)
+        self.version = Config.string("app.version", version)
 
         bootstrap_manager.run(self)
         self.add_middleware(ForgetScopedInstancesMiddleware)
+
+    @property
+    def base_path(self) -> str:
+        return self._base_path
 
     @property
     def container(self) -> ContainerInterface:

@@ -1,5 +1,6 @@
 from abc import abstractmethod
-from typing import Generic, TypeVar
+import inspect
+from typing import Any, Generic, TypeVar
 
 from pyrannic.bootstrap.service_provider import ServiceProvider
 from pyrannic.support.reflection import get_generic_type
@@ -9,8 +10,9 @@ ServiceType = TypeVar("ServiceType")
 
 class InstanceServiceProvider(ServiceProvider, Generic[ServiceType]):
     @property
-    def has_dependencies(self) -> bool:
-        return False
+    def _has_dependencies(self) -> bool:
+        argspec = inspect.getfullargspec(self._create)
+        return len(argspec.args) > 1
 
     @property
     def abstract(self) -> str | type:
@@ -21,16 +23,20 @@ class InstanceServiceProvider(ServiceProvider, Generic[ServiceType]):
         return None
 
     @abstractmethod
-    def create(self) -> ServiceType:
-        pass
+    def _create(self, *args: Any, **kwargs: Any) -> ServiceType:
+        """
+        Create an instance of the service.
+        This method should be implemented by subclasses to provide the logic for creating the service instance.
+        It can be asynchronous and also it can accept injected dependencies as parameters if needed.
+        """
 
     def register(self):
-        if not self.has_dependencies:
-            self._set_instance(self.create())
+        if not self._has_dependencies:
+            self._set_instance(self._create())
 
     async def boot(self):
-        if self.has_dependencies:
-            self._set_instance(await self.app.container.call(self.create))
+        if self._has_dependencies:
+            self._set_instance(await self.app.container.call(self._create))
 
     def _set_instance(self, instance: ServiceType):
         abstract = self.abstract
@@ -38,6 +44,6 @@ class InstanceServiceProvider(ServiceProvider, Generic[ServiceType]):
 
         self.app.container.instance(abstract, instance)
 
-        if aliases:
+        if bool(aliases):
             for alias in aliases:
                 self.app.container.set_alias(abstract, alias)

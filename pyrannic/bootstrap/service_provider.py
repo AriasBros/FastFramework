@@ -35,7 +35,6 @@ class ServiceProvider(ABC):
         This method is called during the application startup phase, and it should be used to set up the necessary components for the application to function properly.
         It can't be async method, because it is called before the application is fully initialized, and it should not perform any asynchronous operations.
         """
-        pass
 
     def initialize(self, *args: Any, **kwargs: Any) -> Any:
         """
@@ -43,7 +42,6 @@ class ServiceProvider(ABC):
         This method is called after the application has been fully initialized, and it should be used to perform any necessary setup that requires the application to be fully functional.
         It can be async method, because it is called after the application is fully initialized, and it can perform asynchronous operations if needed.
         """
-        pass
 
     def boot(self, *args: Any, **kwargs: Any) -> Any:
         """
@@ -51,7 +49,6 @@ class ServiceProvider(ABC):
         This method is called after the application has been fully initialized and all services have been registered and initialized, and it should be used to perform any necessary setup that requires all services to be fully functional.
         It can be async method, because it is called after the application is fully initialized, and it can perform asynchronous operations if needed.
         """
-        pass
 
     def shutdown(self, *args: Any, **kwargs: Any) -> Any:
         """
@@ -59,14 +56,12 @@ class ServiceProvider(ABC):
         This method is called during the application shutdown phase, and it should be used to perform any necessary cleanup operations.
         It can be async method, because it is called during the application shutdown phase, and it can perform asynchronous operations if needed.
         """
-        pass
 
     def failed(self, stage_name: str):
         """
         Handle failure of a non-critical service provider during initialization or boot.
         This method can be overridden by non-critical service providers to perform specific actions when they fail during initialization or boot, such as setting internal flags or performing cleanup operations.
         """
-        pass
 
     def exception(self, message: str | None = None) -> Exception:
         """

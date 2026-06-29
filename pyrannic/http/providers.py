@@ -1,9 +1,9 @@
 from inspect import isfunction
+import os
 
 from fastapi import APIRouter
 
 from pyrannic.bootstrap.service_provider import ServiceProvider
-from pyrannic.http.exceptions.exception import handle_exception
 from pyrannic.http.exceptions.resource_not_found import (
     ResourceNotFoundException,
     handle_resource_not_found_exception,
@@ -19,10 +19,16 @@ from pyrannic.support.reflection import get_attr, get_attrs, get_class, get_func
 
 class RoutersServiceProvider(ServiceProvider):
     def register(self):
-        routers = get_attr("bootstrap.routers", "routers", [])
+        routers = get_attr(
+            os.path.join(self.app.base_path, "bootstrap/routers"),
+            "routers",
+            [],
+        )
 
-        if len(routers) == 0:
-            modules = get_module_paths("app/http/routers")
+        if not bool(routers):
+            modules = get_module_paths(
+                os.path.join(self.app.base_path, "app/http/routers")
+            )
             routers: list[APIRouter] = get_attrs(modules, "router")
 
         for router in routers:
@@ -31,7 +37,11 @@ class RoutersServiceProvider(ServiceProvider):
 
 class MiddlewaresServiceProvider(ServiceProvider):
     def register(self):
-        middlewares = get_attr("bootstrap.middlewares", "middlewares", [])
+        middlewares = get_attr(
+            os.path.join(self.app.base_path, "bootstrap/middlewares"),
+            "middlewares",
+            [],
+        )
 
         if middlewares:
             for middleware in middlewares:
@@ -40,7 +50,9 @@ class MiddlewaresServiceProvider(ServiceProvider):
                 else:
                     self.app.add_middleware(middleware)
         else:
-            for _, module in import_modules("app/http/middlewares"):
+            for _, module in import_modules(
+                os.path.join(self.app.base_path, "app/http/middlewares")
+            ):
                 middleware = get_class(
                     module,
                     class_suffix="Middleware",
@@ -64,4 +76,3 @@ class ExceptionHandlersServiceProvider(ServiceProvider):
         self.app.add_exception_handler(
             ResourceNotFoundException, handle_resource_not_found_exception
         )
-        self.app.add_exception_handler(Exception, handle_exception)

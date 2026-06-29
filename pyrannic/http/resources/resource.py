@@ -27,16 +27,21 @@ class Resource(ResourceInterface):
 
     @classmethod
     def __relationships(cls, model: SerializableInterface) -> dict[str, Any]:
-        relationships: dict[str, dict[str, Any]] = cls._relationships(model)
+        if not cls._with_relationships:
+            relationships = {}
+        else:
+            all_relationships: dict[str, dict[str, Any]] = cls._relationships(model)
 
-        if isinstance(cls._with_relationships, list):
-            return {
-                k: v for k, v in relationships.items() if k in cls._with_relationships
-            }
-        elif cls._with_relationships:
-            return relationships
+            if isinstance(cls._with_relationships, list):
+                relationships = {
+                    k: v
+                    for k, v in all_relationships.items()
+                    if k in cls._with_relationships
+                }
+            else:
+                relationships = all_relationships
 
-        return {}
+        return relationships
 
     def to_dict(
         self,

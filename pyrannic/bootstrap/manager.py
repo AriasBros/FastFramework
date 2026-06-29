@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from logging import Logger
+import os
 from typing import AsyncGenerator, Self, Sequence, Type
 
 from dotenv import load_dotenv
@@ -11,7 +12,7 @@ from pyrannic.support.reflection import get_attr
 
 
 class BootstrapManager:
-    _service_provider_classes: Sequence[Type[ServiceProvider]]
+    _service_provider_classes: list[Type[ServiceProvider]]
     _service_provider_instances: list[ServiceProvider]
     _running = False
     _critical_services_started = False
@@ -20,7 +21,7 @@ class BootstrapManager:
         self,
         service_providers: list[Type[ServiceProvider]] | None = None,
     ) -> None:
-        self._service_provider_classes = self._get_service_providers(service_providers)
+        self._service_provider_classes = service_providers or []
         self._service_provider_instances = []
 
     def start_critical_services(
@@ -28,8 +29,16 @@ class BootstrapManager:
         app: ApplicationInterface,
         services: list[type[ServiceProvider]],
     ) -> Self:
-        """Configure critical services like config, logging, etc. that may be needed during the bootstrapping process."""
-        load_dotenv()
+        """
+        Configure critical services like config, logging, etc. that may be needed during the bootstrapping process.
+
+        After calling this method:
+            - The BootstrapManager is ready to run the bootstrapping process.
+            - The Facade is configured with the application instance.
+            - The critical services are registered and available for use.
+            - The environment variables from the .env file are loaded into the application.
+        """
+        load_dotenv(os.path.join(app.base_path, ".env"))
         Facade.set_facade_application(app)
 
         for provider_class in services:
@@ -47,6 +56,7 @@ class BootstrapManager:
                 "Critical services must be started before running the bootstrap manager"
             )
 
+        self._service_provider_classes = self._discover_service_providers(app)
         self._running = True
         self._logger = app.container.instance(Logger)
         self._logger.info("🕒 Initializing application...")
@@ -56,8 +66,8 @@ class BootstrapManager:
             name = ProviderClass.__name__
 
             try:
-                self._service_provider_instances.append(provider)
                 self._register_provider(provider)
+                self._service_provider_instances.append(provider)
                 self._logger.info(f"✅ Registered {name}")
             except Exception as e:
                 self._provider_exec_failed(provider, "register", e)
@@ -133,11 +143,15 @@ class BootstrapManager:
 
         provider.register()
 
-    def _get_service_providers(
+    def _discover_service_providers(
         self,
-        service_providers: list[Type[ServiceProvider]] | None = None,
+        app: ApplicationInterface,
     ) -> list[Type[ServiceProvider]]:
-        if service_providers:
-            return service_providers
+        if bool(self._service_provider_classes):
+            return self._service_provider_classes
 
-        return get_attr("bootstrap.providers", "providers", [])
+        return get_attr(
+            os.path.join(app.base_path, "bootstrap/providers"),
+            "providers",
+            [],
+        )

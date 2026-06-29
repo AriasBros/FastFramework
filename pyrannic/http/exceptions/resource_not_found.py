@@ -5,7 +5,7 @@ from fastapi import status, Request
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 
-from pyrannic.http.exceptions.exception import HttpExceptionResponse, handle_exception
+from pyrannic.http.exceptions.exception import HttpExceptionResponse
 
 
 class ResourceNotFoundException(RequestValidationError):
@@ -38,13 +38,12 @@ def handle_resource_not_found_exception(
     _: Request,
     exception: Exception,
 ) -> JSONResponse:
-    if isinstance(exception, ResourceNotFoundException):
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={
-                "detail": exception.errors(),
-                "resource_id": exception.body,
-            },
-        )
+    assert isinstance(exception, ResourceNotFoundException)
 
-    return handle_exception(_, exception)
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={
+            "detail": exception.errors(),
+            "resource_id": exception.body,
+        },
+    )

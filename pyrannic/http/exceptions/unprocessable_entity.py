@@ -5,7 +5,7 @@ from fastapi import status, Request
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 
-from pyrannic.http.exceptions.exception import HttpExceptionResponse, handle_exception
+from pyrannic.http.exceptions.exception import HttpExceptionResponse
 
 
 class UnprocessableEntityException(RequestValidationError):
@@ -38,13 +38,12 @@ def handle_unprocessable_entity_exception(
     _: Request,
     exception: Exception,
 ) -> JSONResponse:
-    if isinstance(exception, UnprocessableEntityException):
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content={
-                "detail": exception.errors(),
-                "resource_id": exception.body,
-            },
-        )
+    assert isinstance(exception, UnprocessableEntityException)
 
-    return handle_exception(_, exception)
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": exception.errors(),
+            "resource_id": exception.body,
+        },
+    )

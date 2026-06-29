@@ -390,8 +390,10 @@ class Container(ContainerInterface):
     ) -> Any:
         assert dependant.call  # For types
 
-        if dependencies.errors:
-            raise RequestValidationError(dependencies.errors)
+        errors = self._validate_errors(dependencies.errors)
+
+        if bool(errors):
+            raise RequestValidationError(errors)
 
         if inspect.iscoroutinefunction(dependant.call):
             result = await dependant.call(**dependencies.values, **kwargs)
@@ -403,6 +405,20 @@ class Container(ContainerInterface):
             )
 
         return result
+
+    def _validate_errors(self, errors: list[Any]) -> list[Any]:
+        if not bool(errors):
+            return []
+
+        valid_errors: list[Any] = []
+
+        for error in errors:
+            loc = error.get("loc", [])
+
+            if "kwargs" not in loc and "args" not in loc:
+                valid_errors.append(error)
+
+        return valid_errors
 
     def _fallback_request(
         self, app: ApplicationInterface, context_manager: AsyncExitStack

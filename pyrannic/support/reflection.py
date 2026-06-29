@@ -3,7 +3,11 @@ from collections.abc import Callable
 import importlib
 from inspect import getmembers, isclass, isabstract, isfunction
 from types import ModuleType, get_original_bases
-from typing import Any, get_args
+from typing import Any
+
+from pydantic._internal._generics import get_args
+
+from pyrannic.support.string import to_pascal_case
 
 
 def is_interface(cls: object) -> bool:
@@ -25,7 +29,7 @@ def get_generic_type(instance_or_class: object | type, generic_index: int = 0) -
 
     if size == 0:
         raise ValueError(
-            f"Generic type not found for {instance_or_class.__class__.__name__} at index {generic_index}"  # type: ignore
+            f"Generic type not found for {instance_or_class.__class__.__name__} at index {generic_index}"  # pyright: ignore[reportUnknownMemberType]
         )
 
     return args[0]
@@ -48,7 +52,7 @@ def get_class(
     module: str | ModuleType,
     *,
     class_name: str | None = None,
-    class_suffix: str = "",
+    class_suffix: str | None = None,
 ) -> type | None:
     """Returns the specified class from the given module."""
 
@@ -58,7 +62,10 @@ def get_class(
         return None
 
     if class_name is None:
-        class_name = module.__name__.split(".")[-1].capitalize() + class_suffix
+        class_name = to_pascal_case(module.__name__.split(".")[-1])
+
+        if class_suffix and not class_name.endswith(class_suffix):
+            class_name += class_suffix
 
     class_ = getattr(module, class_name, None)
 

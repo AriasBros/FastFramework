@@ -1,5 +1,7 @@
+import os
+
 from pyrannic.bootstrap.instance_service_provider import InstanceServiceProvider
-from pyrannic.config.respository import ConfigRepository
+from pyrannic.config.repository import ConfigRepository
 from pyrannic.contracts.config.configuration import ConfigurationInterface
 from pyrannic.contracts.config.respository import ConfigRepositoryInterface
 from pyrannic.support.path import get_module_paths
@@ -11,10 +13,10 @@ class ConfigRepositoryProvider(InstanceServiceProvider[ConfigRepositoryInterface
     def aliases(self) -> list[str | type] | None:
         return ["config"]
 
-    def create(self) -> ConfigRepositoryInterface:
+    def _create(self) -> ConfigRepositoryInterface:
         repo = ConfigRepository()
 
-        modules = get_module_paths("config")
+        modules = get_module_paths(os.path.join(self.app.base_path, "config"))
         classes = get_classes(modules, class_suffix="Config")
 
         for cls in classes:

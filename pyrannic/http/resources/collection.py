@@ -27,7 +27,7 @@ class _ResourceCollection(Generic[ResourceType], ResourceCollectionInterface):
     data: list[ResourceType]
 
 
-class _PydanticCollection(BaseModel, _ResourceCollection[ResourceType]):
+class BaseCollection(BaseModel, _ResourceCollection[ResourceType]):
     def __init__(
         self,
         data: ItemsType[ResourceType],
@@ -36,7 +36,6 @@ class _PydanticCollection(BaseModel, _ResourceCollection[ResourceType]):
     ):
         if not hasattr(self, "__resource_cls__"):
             self.__resource_cls__ = get_generic_type(self)
-            print(self.__resource_cls__)
 
         assert self.__resource_cls__ is not None, (
             "Resource class must be set before initializing ResourceCollection"
@@ -62,7 +61,7 @@ class _PydanticCollection(BaseModel, _ResourceCollection[ResourceType]):
             )
 
 
-class ResourceCollection(_PydanticCollection[ResourceType]):
+class ResourceCollection(BaseCollection[ResourceType]):
     def __init__(self, items: ItemsType[ResourceType], /, **kwargs: Any) -> None:
         kwargs["data"] = items
         super().__init__(**kwargs)
