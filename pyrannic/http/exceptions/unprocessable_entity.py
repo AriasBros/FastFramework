@@ -29,7 +29,7 @@ class UnprocessableEntityException(RequestValidationError):
         )
 
 
-class UnprocessableEntityResponse(BaseModel):
+class UnprocessableContentResponse(BaseModel):
     detail: list[HttpExceptionResponse]
     resource_id: Any
 
@@ -41,7 +41,7 @@ def handle_unprocessable_entity_exception(
     assert isinstance(exception, UnprocessableEntityException)
 
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={
             "detail": exception.errors(),
             "resource_id": exception.body,
